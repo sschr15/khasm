@@ -6,6 +6,7 @@ import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 
+@Suppress("unused")
 class KhasmTransformerBuilder(method: KhasmTransformerBuilder.() -> Unit) {
     fun mapClass(intermediary: String): String =
         FabricLoader.getInstance().mappingResolver.mapClassName("intermediary", intermediary)

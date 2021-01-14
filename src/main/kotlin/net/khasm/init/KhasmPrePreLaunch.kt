@@ -13,6 +13,8 @@ object KhasmPrePreLaunch : PrePreLaunch {
     private val debugFolder = FabricLoader.getInstance().gameDir.resolve("khasm")
 
     override fun onPrePreLaunch() {
+        logger.info("Khasm is running from prePreLaunch!")
+
         if (Files.exists(debugFolder)) KhasmTest.registerTest()
 
         TransformerApi.registerPreMixinAsmClassTransformer { name, node ->
