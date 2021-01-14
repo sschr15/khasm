@@ -1,38 +1,47 @@
 package net.khasm.test
 
-import net.khasm.transform.KhasmTransformerBuilder
+import codes.som.anthony.koffee.insns.jvm.*
 import net.khasm.transform.KhasmTransformerDispatcher
-import org.objectweb.asm.Opcodes.*
-import org.objectweb.asm.tree.*
+import org.objectweb.asm.tree.LineNumberNode
+import java.io.PrintStream
+import java.util.*
 
 object KhasmTest {
     fun registerTest() {
-        KhasmTransformerDispatcher.registerTransformer(KhasmTransformerBuilder {
+        KhasmTransformerDispatcher.registerTransformer {
             classTarget {
-                name.endsWith("TitleScreen")
+                // TitleScreen
+                name.replace('/', '.') == mapClass("net.minecraft.class_442")
             }
 
             methodTarget {
-                name + desc == "tick()V"
+                // TickableElement.tick() (TitleScreen is an implementation of TickableElement)
+                name == mapMethod("net.minecraft.class_4893", "method_25393", "()V")
+                        && desc == "()V"
             }
 
             targets {
-                listOf(0)
+                listOf(instructions.indexOfFirst { it is LineNumberNode && it.line == 82 })
             }
 
-            action { node: MethodNode, ins: AbstractInsnNode ->
-                node.visitCode()
-                node.instructions.clear()
-                node.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;")
-                node.visitLdcInsn("Hello world")
-                node.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false)
-                node.visitInsn(RETURN)
-                node.visitMaxs(2, 1)
+            action {
+                getstatic(System::class, "out", PrintStream::class)
+                new(StringBuilder::class)
+                dup
+                invokespecial(StringBuilder::class, "<init>", void)
+                new(Random::class)
+                dup
+                invokespecial(Random::class, "<init>", void)
+                invokevirtual(Random::class, "nextInt", int)
+                invokevirtual(StringBuilder::class, "append", StringBuilder::class, int)
+                ldc(" ")
+                invokevirtual(StringBuilder::class, "append", StringBuilder::class, String::class)
+                invokevirtual(StringBuilder::class, "toString", String::class)
+                invokevirtual(PrintStream::class, "print", void, String::class)
 
-                node.instructions.forEach {
-                    println(it)
-                }
+                maxStack = 2
+                maxLocals = 1
             }
-        }.build())
+        }
     }
 }
