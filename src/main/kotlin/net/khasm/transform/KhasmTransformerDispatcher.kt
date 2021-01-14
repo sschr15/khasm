@@ -9,6 +9,10 @@ object KhasmTransformerDispatcher {
         transformers.add(transformer)
     }
 
+    fun registerTransformer(transformer: KhasmTransformerBuilder.() -> Unit) {
+        registerTransformer(KhasmTransformerBuilder(transformer).build())
+    }
+
     fun tryTransform(node: ClassNode) {
         transformers.forEach {
             it.tryTransformClass(node)
