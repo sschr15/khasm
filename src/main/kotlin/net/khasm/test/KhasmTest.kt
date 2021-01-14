@@ -10,16 +10,11 @@ object KhasmTest {
      */
     fun registerTest() {
         KhasmTransformerDispatcher.registerTransformer {
-            classTarget {
-                // TitleScreen
-                name.replace('/', '.') == mapClass("net.minecraft.class_442")
-            }
+            // TitleScreen
+            classTarget("net.minecraft.class_442")
 
-            methodTarget {
-                // Screen.init (Called on open or resize)
-                name == mapMethod("net.minecraft.class_437", "method_25426", "()V")
-                        && desc == "()V"
-            }
+            // Screen.init (Called on open or resize)
+            methodTarget("net.minecraft.class_437", "method_25426", "()V")
 
             targets {
                 listOf(1)

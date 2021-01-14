@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 
-@Suppress("unused")
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 class KhasmTransformerBuilder(method: KhasmTransformerBuilder.() -> Unit) {
     fun mapClass(intermediary: String): String =
         FabricLoader.getInstance().mappingResolver.mapClassName("intermediary", intermediary)
@@ -23,8 +23,20 @@ class KhasmTransformerBuilder(method: KhasmTransformerBuilder.() -> Unit) {
         method()
     }
 
+    fun classTarget(targetClass: String) {
+        classTarget {
+            name.replace('/', '.') == mapClass(targetClass)
+        }
+    }
+
     fun classTarget(lambda: ClassNode.() -> Boolean) {
         working.setClassPredicate(lambda)
+    }
+
+    fun methodTarget(owner: String, intermediary: String, descriptor: String) {
+        methodTarget {
+            name == mapMethod(owner, intermediary, descriptor) && desc == descriptor
+        }
     }
 
     fun methodTarget(lambda: MethodNode.() -> Boolean) {
