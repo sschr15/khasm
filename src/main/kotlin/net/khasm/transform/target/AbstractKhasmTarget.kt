@@ -23,7 +23,23 @@ abstract class AbstractKhasmTarget {
                 after?.getPossibleCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node)?.sorted()
                     ?: return emptyList() // Annoying hacks because mutable
             val possible = higherValueZip(startPoints.toMutableList(), stoppingPoints.toMutableList())
-            println(possible)
+
+            val out = mutableListOf<Int>()
+            possible.forEach { out.add(it.first); out.add(it.second) }
+            return out
+        }
+
+        if (after != null && afterAction == TargetChainAction.INSIDE) {
+            val unpackedRanges = after?.getCursors(node)?.toMutableList() ?: return emptyList()
+            val ranges = mutableListOf<IntRange>()
+            while (unpackedRanges.isNotEmpty()) {
+                ranges.add(IntRange(unpackedRanges.removeFirst(), unpackedRanges.removeFirst()))
+            }
+            return getPossibleCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node).filter { int ->
+                ranges.any { range ->
+                    range.contains(int)
+                }
+            }
         }
 
         return emptyList()
