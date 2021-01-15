@@ -16,7 +16,7 @@ import kotlin.math.min
 
 class KhasmTransformer {
     // Predicates
-    private lateinit var transformClassPredicate: (ClassNode) -> Boolean
+    private var transformClassPredicate: (ClassNode) -> Boolean = { false }
     private var transformMethodPredicate: (MethodNode) -> Boolean = { false }
 
     // Transforming methods
@@ -44,7 +44,7 @@ class KhasmTransformer {
 
     // Predicate testing
     private fun shouldTransformClass(cls: ClassNode): Boolean {
-        return if (::transformClassPredicate.isInitialized) transformClassPredicate(cls) else false
+        return transformClassPredicate(cls)
     }
 
     private fun shouldTransformMethod(method: MethodNode): Boolean {
