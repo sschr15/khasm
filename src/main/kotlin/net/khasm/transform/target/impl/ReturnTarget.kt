@@ -8,7 +8,7 @@ class ReturnTarget : AbstractKhasmTarget() {
         val output = mutableListOf<Int>()
         node.instructions.forEachIndexed { index, it ->
             if (it.opcode in 172..177) {
-                output.add(index - 1)
+                output.add(index)
             }
         }
         return output

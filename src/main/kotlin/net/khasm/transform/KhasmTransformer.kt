@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.InsnList
 import org.objectweb.asm.tree.MethodNode
+import java.lang.Integer.max
 import kotlin.math.min
 
 class KhasmTransformer {
@@ -83,10 +84,13 @@ class KhasmTransformer {
     }
 
     private fun getInsnSections(instructions: List<AbstractInsnNode>, breakLocations: List<Int>): List<List<AbstractInsnNode>> {
+        // Target above the instruction by default (and caps to start of method)
+        val offsetLocations = breakLocations.map { max(0, it - 1) }
+
         val sections = mutableListOf<List<AbstractInsnNode>>()
         var prevLocation = 0
         // List is mapped to be in the list range then turned into a set to prevent duplicates
-        for (n in breakLocations.map { min(it, instructions.size) }.toSet()) {
+        for (n in offsetLocations.map { min(it, instructions.size) }.toSet()) {
             val section = instructions.subList(prevLocation, n + 1)
             sections.add(section)
             prevLocation = n + 1
