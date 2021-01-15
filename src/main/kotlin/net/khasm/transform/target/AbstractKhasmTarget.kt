@@ -3,6 +3,7 @@ package net.khasm.transform.target
 import net.khasm.util.higherValueZip
 import org.objectweb.asm.tree.MethodNode
 
+@Suppress("unused")
 abstract class AbstractKhasmTarget {
     private var before: AbstractKhasmTarget? = null
     private var beforeAction: TargetChainAction? = null
@@ -10,17 +11,23 @@ abstract class AbstractKhasmTarget {
     private var after: AbstractKhasmTarget? = null
     private var afterAction: TargetChainAction? = null
 
+    private var cursorFilter: (List<Int>) -> List<Int> = {it}
+
     protected abstract fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int>
+
+    private fun getFilteredCursors(range: IntRange, node: MethodNode): List<Int> {
+        return cursorFilter(getPossibleCursors(range, node))
+    }
 
     fun getCursors(node: MethodNode): List<Int> {
         if (before == null && after == null) {
-            return getPossibleCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node)
+            return getFilteredCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node)
         }
 
         if (after != null && afterAction == TargetChainAction.UNTIL) {
-            val startPoints = getPossibleCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node).sorted()
+            val startPoints = getFilteredCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node).sorted()
             val stoppingPoints =
-                after?.getPossibleCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node)?.sorted()
+                after?.getFilteredCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node)?.sorted()
                     ?: return emptyList() // Annoying hacks because mutable
             val possible = higherValueZip(startPoints.toMutableList(), stoppingPoints.toMutableList())
 
@@ -35,7 +42,7 @@ abstract class AbstractKhasmTarget {
             while (unpackedRanges.isNotEmpty()) {
                 ranges.add(IntRange(unpackedRanges.removeFirst(), unpackedRanges.removeFirst()))
             }
-            return getPossibleCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node).filter { int ->
+            return getFilteredCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node).filter { int ->
                 ranges.any { range ->
                     range.contains(int)
                 }
@@ -43,6 +50,32 @@ abstract class AbstractKhasmTarget {
         }
 
         return emptyList()
+    }
+
+    fun first(): AbstractKhasmTarget {
+        cursorFilter = {
+            listOf(it.first())
+        }
+        return this
+    }
+
+    fun last(): AbstractKhasmTarget {
+        cursorFilter = {
+            listOf(it.last())
+        }
+        return this
+    }
+
+    fun ordinal(index: Int): AbstractKhasmTarget {
+        cursorFilter = {
+            listOf(it[index])
+        }
+        return this
+    }
+
+    fun filter(lambda: (List<Int>) -> List<Int>): AbstractKhasmTarget {
+        cursorFilter = lambda
+        return this
     }
 
     infix fun inside(other: AbstractKhasmTarget): AbstractKhasmTarget {
