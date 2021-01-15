@@ -29,6 +29,9 @@ abstract class AbstractKhasmTarget {
         return cursorFilter(getPossibleCursors(range, node))
     }
 
+    /**
+     * Returns all the valid target locations for [node]
+     */
     fun getCursors(node: MethodNode): List<Int> {
         if (after == null) {
             return getFilteredCursors(IntRange.ANY, node)
@@ -67,6 +70,9 @@ abstract class AbstractKhasmTarget {
         }
     }
 
+    /**
+     * Give only the first target.
+     */
     fun first(): AbstractKhasmTarget {
         cursorFilter = {
             listOf(it.first())
@@ -74,6 +80,9 @@ abstract class AbstractKhasmTarget {
         return this
     }
 
+    /**
+     * Give only the last target.
+     */
     fun last(): AbstractKhasmTarget {
         cursorFilter = {
             listOf(it.last())
@@ -81,6 +90,9 @@ abstract class AbstractKhasmTarget {
         return this
     }
 
+    /**
+     * Give only the [index]th target.
+     */
     fun ordinal(index: Int): AbstractKhasmTarget {
         cursorFilter = {
             listOf(it[index])
@@ -88,11 +100,22 @@ abstract class AbstractKhasmTarget {
         return this
     }
 
+    /**
+     * Given a list of targets, return an interpreted list of targets.
+     *
+     * One example for this might be to use the offset of the reported targets:
+     * ```
+     * target.filter { it.map { n -> n + 1 } }
+     * ```
+     */
     fun filter(lambda: (List<Int>) -> List<Int>): AbstractKhasmTarget {
         cursorFilter = lambda
         return this
     }
 
+    /**
+     * Only targets that also fall within the options of [other]
+     */
     infix fun inside(other: AbstractKhasmTarget): AbstractKhasmTarget {
         println("INSIDE: $this -> $other")
 
@@ -102,6 +125,7 @@ abstract class AbstractKhasmTarget {
         return this
     }
 
+    @Deprecated("Current implementation is broken and does not work as the intended result.")
     infix fun until(other: AbstractKhasmTarget): AbstractKhasmTarget {
         println("UNTIL: $this -> $other")
 
@@ -111,6 +135,9 @@ abstract class AbstractKhasmTarget {
         return this
     }
 
+    /**
+     * All targets matched by either this or [other]
+     */
     infix fun andOr(other: AbstractKhasmTarget): AbstractKhasmTarget {
         println("AND_OR: $this -> $other")
 

@@ -2,7 +2,8 @@
 
 package net.khasm.transform.target
 
-import org.objectweb.asm.tree.MethodNode
+import org.objectweb.asm.tree.*
+import kotlin.reflect.KClass
 
 /**
  * Inject with your own logic.
@@ -41,5 +42,17 @@ class OpcodeTarget(private val opcode: Int) : AbstractKhasmTarget() {
             }
         }
         return output
+    }
+}
+
+/**
+ * Inject at a given ASM class instance
+ * ([LdcInsnNode], [VarInsnNode], [LabelNode], etc).
+ */
+class AsmInstructionTarget(private val type: KClass<out AbstractInsnNode>) : AbstractKhasmTarget() {
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
+        return node.instructions.mapIndexed { index, insnNode -> index to (type.isInstance(insnNode)) }
+            .filter { it.second }
+            .map { it.first }
     }
 }

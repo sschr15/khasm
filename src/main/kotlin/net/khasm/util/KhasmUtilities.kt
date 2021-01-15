@@ -41,3 +41,5 @@ class UnknownInsnNode : AbstractInsnNode(-1) {
 
     override fun clone(clonedLabels: MutableMap<LabelNode, LabelNode>?) = UnknownInsnNode()
 }
+
+fun Boolean.toInt() = if (this) 1 else 0

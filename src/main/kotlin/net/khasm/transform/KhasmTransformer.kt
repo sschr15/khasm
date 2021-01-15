@@ -68,11 +68,12 @@ class KhasmTransformer {
                     method.visitCode()
                     // split method instructions into the sections identified by the requested targets
                     val sections = getInsnSections(oldInsns, cursors.sorted())
-                    for ((section, nextIdx) in sections.mapIndexed { idx, list -> list to idx + 1 }.filter { it.second < sections.size }) {
-                        // if we shouldn't override the method, insert whatever code should go first
-                        if (!overrideMethod) section.forEach { method.instructions.add(it) }
-                        // use Koffee for direct bytecode-style commands (aload_2, iastore, etc)
-                        method.koffee {
+                    // use Koffee for direct bytecode-style commands (aload_2, iastore, etc)
+                    method.koffee {
+                        for ((section, nextIdx) in sections.mapIndexed { idx, list -> list to idx + 1 }.filter { it.second < sections.size }) {
+                            // if we shouldn't override the method, insert whatever code should go first
+                            if (!overrideMethod) section.forEach { instructions.add(it) }
+
                             // We use a try/catch block just in case some weird list access stuff would occur
                             this.action(try { sections[nextIdx][0] } catch (e: IndexOutOfBoundsException) { UnknownInsnNode() })
                         }
