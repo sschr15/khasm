@@ -12,8 +12,8 @@ repositories {
 }
 
 dependencies {
-    modImplementation include('khasm:khasm:1.1.0')
+    modImplementation include('khasm:khasm:VERSION')
 }
 ```
 
-Get the latest version (instead of `1.1.0`) from the [properties file](gradle.properties)
+Get the latest version (instead of `VERSION`) from the [properties file](gradle.properties)
