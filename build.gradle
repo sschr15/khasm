@@ -19,6 +19,7 @@ repositories {
     maven {
         url = 'https://maven.hackery.site/'
     }
+    jcenter()
 }
 
 dependencies {
@@ -30,8 +31,6 @@ dependencies {
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
     include modImplementation('net.devtech:grossfabrichacks:4.5')
     include modApi('codes.som.anthony:koffee:8.0.2')
-
-    dokkaHtmlPlugin('org.jetbrains.dokka:dokka-base:1.4.20')
 }
 
 processResources {
