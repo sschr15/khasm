@@ -2,6 +2,7 @@ package net.khasm.transform
 
 import codes.som.anthony.koffee.MethodAssembly
 import net.fabricmc.loader.api.FabricLoader
+import net.khasm.transform.target.AbstractKhasmTarget
 import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
@@ -52,8 +53,8 @@ class KhasmTransformerBuilder(method: KhasmTransformerBuilder.() -> Unit) {
         working.overrideMethod = true
     }
 
-    fun targets(lambda: MethodNode.() -> List<Int>) {
-        working.setTargetPredicate(lambda)
+    fun target(lambda: () -> AbstractKhasmTarget) {
+        working.setTargetPredicate(lambda())
     }
 
     fun action(action: MethodAssembly.(AbstractInsnNode?) -> Unit) {

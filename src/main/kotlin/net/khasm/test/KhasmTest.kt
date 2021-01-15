@@ -1,7 +1,10 @@
 package net.khasm.test
 
-import codes.som.anthony.koffee.insns.jvm.*
+import codes.som.anthony.koffee.insns.jvm.getstatic
+import codes.som.anthony.koffee.insns.jvm.invokevirtual
+import codes.som.anthony.koffee.insns.jvm.ldc
 import net.khasm.transform.KhasmTransformerDispatcher
+import net.khasm.transform.target.impl.HeadTarget
 import java.io.PrintStream
 
 object KhasmTest {
@@ -16,8 +19,8 @@ object KhasmTest {
             // Screen.init (Called on open or resize)
             methodTarget("net.minecraft.class_437", "method_25426", "()V")
 
-            targets {
-                listOf(1)
+            target {
+                HeadTarget()
             }
 
             action {

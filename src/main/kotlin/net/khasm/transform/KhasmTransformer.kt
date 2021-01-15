@@ -4,6 +4,7 @@ package net.khasm.transform
 
 import codes.som.anthony.koffee.MethodAssembly
 import codes.som.anthony.koffee.koffee
+import net.khasm.transform.target.AbstractKhasmTarget
 import net.khasm.util.logger
 import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.ClassNode
@@ -17,7 +18,7 @@ class KhasmTransformer {
     private var transformMethodPredicate: (MethodNode) -> Boolean = { false }
 
     // Transforming methods
-    private lateinit var targetPredicate: MethodNode.() -> List<Int>
+    private lateinit var targetPredicate: AbstractKhasmTarget
     private lateinit var action: MethodAssembly.(AbstractInsnNode?) -> Unit
 
     internal var overrideMethod = false
@@ -31,7 +32,7 @@ class KhasmTransformer {
         transformMethodPredicate = predicate
     }
 
-    fun setTargetPredicate(predicate: MethodNode.() -> List<Int>) {
+    fun setTargetPredicate(predicate: AbstractKhasmTarget) {
         targetPredicate = predicate
     }
 
@@ -55,7 +56,7 @@ class KhasmTransformer {
             for (method in classNode.methods) {
                 if (shouldTransformMethod(method)) {
                     logger.info("Transforming method " + method.name + method.desc)
-                    val cursors = targetPredicate(method)
+                    val cursors = targetPredicate.getCursors(method)
                     val oldInsns = method.instructions.toList()
 
                     // clear instruction list then tell it that code exists
