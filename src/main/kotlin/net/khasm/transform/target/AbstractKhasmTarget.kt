@@ -1,5 +1,6 @@
 package net.khasm.transform.target
 
+import net.khasm.util.higherValueZip
 import org.objectweb.asm.tree.MethodNode
 
 abstract class AbstractKhasmTarget {
@@ -15,16 +16,29 @@ abstract class AbstractKhasmTarget {
         if (before == null && after == null) {
             return getPossibleCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node)
         }
+
+        if (after != null && afterAction == TargetChainAction.UNTIL) {
+            val startPoints = getPossibleCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node).sorted()
+            val stoppingPoints =
+                after?.getPossibleCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node)?.sorted()
+                    ?: return emptyList() // Annoying hacks because mutable
+            val possible = higherValueZip(startPoints.toMutableList(), stoppingPoints.toMutableList())
+            println(possible)
+        }
+
         return emptyList()
     }
 
     infix fun inside(other: AbstractKhasmTarget): AbstractKhasmTarget {
         println("INSIDE: $this -> $other")
 
+        other.before = this
+        other.beforeAction = TargetChainAction.INSIDE
+
         after = other
         afterAction = TargetChainAction.INSIDE
 
-        return other
+        return this
     }
 
     infix fun until(other: AbstractKhasmTarget): AbstractKhasmTarget {
@@ -36,6 +50,6 @@ abstract class AbstractKhasmTarget {
         after = other
         afterAction = TargetChainAction.UNTIL
 
-        return other
+        return this
     }
 }
