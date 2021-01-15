@@ -1,13 +1,11 @@
 package net.khasm.transform.target
 
+import net.khasm.util.ANY
 import net.khasm.util.higherValueZip
 import org.objectweb.asm.tree.MethodNode
 
 @Suppress("unused")
 abstract class AbstractKhasmTarget {
-    private var before: AbstractKhasmTarget? = null
-    private var beforeAction: TargetChainAction? = null
-
     private var after: AbstractKhasmTarget? = null
     private var afterAction: TargetChainAction? = null
 
@@ -20,36 +18,41 @@ abstract class AbstractKhasmTarget {
     }
 
     fun getCursors(node: MethodNode): List<Int> {
-        if (before == null && after == null) {
-            return getFilteredCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node)
+        if (after == null) {
+            return getFilteredCursors(IntRange.ANY, node)
         }
 
-        if (after != null && afterAction == TargetChainAction.UNTIL) {
-            val startPoints = getFilteredCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node).sorted()
-            val stoppingPoints =
-                after?.getFilteredCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node)?.sorted()
-                    ?: return emptyList() // Annoying hacks because mutable
-            val possible = higherValueZip(startPoints.toMutableList(), stoppingPoints.toMutableList())
-
-            val out = mutableListOf<Int>()
-            possible.forEach { out.add(it.first); out.add(it.second) }
-            return out
-        }
-
-        if (after != null && afterAction == TargetChainAction.INSIDE) {
-            val unpackedRanges = after?.getCursors(node)?.toMutableList() ?: return emptyList()
-            val ranges = mutableListOf<IntRange>()
-            while (unpackedRanges.isNotEmpty()) {
-                ranges.add(IntRange(unpackedRanges.removeFirst(), unpackedRanges.removeFirst()))
-            }
-            return getFilteredCursors(IntRange(Int.MIN_VALUE, Int.MAX_VALUE), node).filter { int ->
-                ranges.any { range ->
-                    range.contains(int)
+        return when(afterAction) {
+            TargetChainAction.INSIDE -> {
+                val unpackedRanges = after?.getCursors(node)?.toMutableList() ?: return emptyList()
+                val ranges = mutableListOf<IntRange>()
+                while (unpackedRanges.isNotEmpty()) {
+                    ranges.add(IntRange(unpackedRanges.removeFirst(), unpackedRanges.removeFirst()))
+                }
+                getFilteredCursors(IntRange.ANY, node).filter { int ->
+                    ranges.any { range ->
+                        range.contains(int)
+                    }
                 }
             }
-        }
+            TargetChainAction.UNTIL -> {
+                val startPoints = getFilteredCursors(IntRange.ANY, node).sorted()
+                val stoppingPoints =
+                    after?.getFilteredCursors(IntRange.ANY, node)?.sorted()
+                        ?: return emptyList()
+                val possible = higherValueZip(startPoints.toMutableList(), stoppingPoints.toMutableList())
 
-        return emptyList()
+                val out = mutableListOf<Int>()
+                possible.forEach { out.add(it.first); out.add(it.second) }
+                out
+            }
+            TargetChainAction.AND_OR -> {
+                val output = getFilteredCursors(IntRange.ANY, node).toMutableList()
+                output.addAll(after?.getFilteredCursors(IntRange.ANY, node) ?: emptyList())
+                output
+            }
+            null -> emptyList()
+        }
     }
 
     fun first(): AbstractKhasmTarget {
@@ -81,9 +84,6 @@ abstract class AbstractKhasmTarget {
     infix fun inside(other: AbstractKhasmTarget): AbstractKhasmTarget {
         println("INSIDE: $this -> $other")
 
-        other.before = this
-        other.beforeAction = TargetChainAction.INSIDE
-
         after = other
         afterAction = TargetChainAction.INSIDE
 
@@ -93,11 +93,17 @@ abstract class AbstractKhasmTarget {
     infix fun until(other: AbstractKhasmTarget): AbstractKhasmTarget {
         println("UNTIL: $this -> $other")
 
-        other.before = this
-        other.beforeAction = TargetChainAction.UNTIL
-
         after = other
         afterAction = TargetChainAction.UNTIL
+
+        return this
+    }
+
+    infix fun andOr(other: AbstractKhasmTarget): AbstractKhasmTarget {
+        println("AND_OR: $this -> $other")
+
+        after = other
+        afterAction = TargetChainAction.AND_OR
 
         return this
     }

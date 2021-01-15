@@ -5,6 +5,9 @@ import org.apache.logging.log4j.Logger
 
 internal val logger: Logger = LogManager.getLogger("khasm")
 
+internal val IntRange.Companion.ANY: IntRange
+    get() {return IntRange(Int.MIN_VALUE, Int.MAX_VALUE)}
+
 /**
  * Assumes sorted input lists.
  *
