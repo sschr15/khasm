@@ -57,7 +57,7 @@ class KhasmTransformerBuilder(method: KhasmTransformerBuilder.() -> Unit) {
         working.setTargetPredicate(lambda())
     }
 
-    fun action(action: MethodAssembly.(AbstractInsnNode?) -> Unit) {
+    fun action(action: MethodAssembly.(AbstractInsnNode) -> Unit) {
         working.setAction(action)
     }
 

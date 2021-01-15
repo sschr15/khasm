@@ -4,12 +4,24 @@ import net.khasm.util.ANY
 import net.khasm.util.higherValueZip
 import org.objectweb.asm.tree.MethodNode
 
+/**
+ * A Khasm injection target.
+ *
+ * This is used for defining where to inject a
+ * Khasm transformer's code. Many targets present
+ * are meant to imitate the default Mixin targets
+ * ([HeadTarget], [ReturnTarget]). However, since
+ * this is able to inject anywhere within the
+ * method body, a few other targets are designed
+ * for more control over where exactly to inject
+ * ([RawTarget], [CustomTarget]).
+ */
 @Suppress("unused")
 abstract class AbstractKhasmTarget {
     private var after: AbstractKhasmTarget? = null
     private var afterAction: TargetChainAction? = null
 
-    private var cursorFilter: (List<Int>) -> List<Int> = {it}
+    private var cursorFilter: (List<Int>) -> List<Int> = { it }
 
     protected abstract fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int>
 

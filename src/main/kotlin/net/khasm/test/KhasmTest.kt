@@ -4,7 +4,7 @@ import codes.som.anthony.koffee.insns.jvm.getstatic
 import codes.som.anthony.koffee.insns.jvm.invokevirtual
 import codes.som.anthony.koffee.insns.jvm.ldc
 import net.khasm.transform.KhasmTransformerDispatcher
-import net.khasm.transform.target.impl.HeadTarget
+import net.khasm.transform.target.HeadTarget
 import java.io.PrintStream
 
 object KhasmTest {
