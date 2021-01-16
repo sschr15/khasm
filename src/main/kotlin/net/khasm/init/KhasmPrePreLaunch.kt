@@ -9,7 +9,7 @@ import net.khasm.util.logger
 import java.nio.file.Files
 
 @Suppress("unused")
-object KhasmPrePreLaunch : PrePreLaunch {
+class KhasmPrePreLaunch : PrePreLaunch {
     private val debugFolder = FabricLoader.getInstance().gameDir.resolve("khasm")
 
     override fun onPrePreLaunch() {

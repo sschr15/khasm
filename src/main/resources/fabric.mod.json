@@ -3,9 +3,15 @@
   "id": "khasm",
   "version": "${version}",
   "name": "Khasm",
-  "description": "",
-  "authors": [],
-  "contact": {},
+  "description": "a concern library that does what Mixin can't",
+  "authors": [
+    "P03W",
+    "sschr15"
+  ],
+  "contact": {
+    "sources": "https://github.com/P03W/khasm",
+    "issues": "https://github.com/P03W/khasm/issues"
+  },
   "license": "MPL-2.0",
   "icon": "assets/khasm/icon.png",
   "environment": "*",
@@ -19,6 +25,10 @@
   },
   "depends": {
     "fabricloader": ">=0.10.8",
-    "minecraft": "1.16.4"
+    "minecraft": "*",
+    "grossfabrichacks": ">=6.1"
+  },
+  "custom": {
+    "modmenu:api": true
   }
 }
