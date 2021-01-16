@@ -17,8 +17,8 @@ import org.spongepowered.asm.mixin.injection.points.*
  * at the beginning, this does nothing.
  */
 class HeadTarget : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
-        return if (range.contains(0)) listOf(0) else emptyList()
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return if (range.contains(0)) CursorsFixed(0) else CursorsFixed()
     }
 }
 
@@ -27,14 +27,14 @@ class HeadTarget : AbstractKhasmTarget() {
  * This target is equivalent to [`@At("RETURN")`][BeforeReturn]
  */
 class ReturnTarget : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
         val output = mutableListOf<Int>()
         node.instructions.forEachIndexed { index, it ->
             if (it.opcode in Opcodes.IRETURN..Opcodes.RETURN) {
                 output.add(index)
             }
         }
-        return output
+        return CursorsFixed(output)
     }
 }
 
@@ -43,8 +43,8 @@ class ReturnTarget : AbstractKhasmTarget() {
  * This target is equivalent to [`@At("TAIL")`][BeforeFinalReturn]
  */
 class LastReturnTarget : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
-        return listOf(node.instructions.map { it.opcode }.lastIndexOf(Type.getType(node.desc.substringAfter(')')).getOpcode(Opcodes.IRETURN)))
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return CursorsFixed(node.instructions.map { it.opcode }.lastIndexOf(Type.getType(node.desc.substringAfter(')')).getOpcode(Opcodes.IRETURN)))
     }
 }
 
@@ -66,10 +66,10 @@ private fun mapMethod(owner: String, name: String, desc: String) =
  * a Minecraft method invocation.
  */
 class MethodInvocationTarget(private val owner: String, private val name: String, private val desc: String) : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
-        return node.instructions.mapIndexed { index, insnNode -> if (insnNode !is MethodInsnNode) -1 else {
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is MethodInsnNode) -1 else {
             if (insnNode.owner == mapClass(owner) && insnNode.name == mapMethod(owner, name, desc) && insnNode.desc == desc) index else -1
-        } }.filter { it >= 0 }
+        } }.filter { it >= 0 })
     }
 }
 
@@ -84,13 +84,13 @@ class MethodInvocationTarget(private val owner: String, private val name: String
  * @see FieldWriteTarget for injecting when fields are written to
  */
 class FieldReadTarget(private val owner: String, private val name: String, private val desc: String) : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
-        return node.instructions.mapIndexed { index, insnNode -> if (insnNode !is FieldInsnNode) -1 else if (
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is FieldInsnNode) -1 else if (
             insnNode.owner == mapClass(owner) &&
             insnNode.name == mapMethod(owner, name, desc) &&
             insnNode.desc == desc
         ) index else -1
-        }.filter { it >= 0 }
+        }.filter { it >= 0 })
     }
 }
 
@@ -105,13 +105,13 @@ class FieldReadTarget(private val owner: String, private val name: String, priva
  * @see FieldReadTarget for injecting when fields are read
  */
 class FieldWriteTarget(private val owner: String, private val name: String, private val desc: String) : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
-        return node.instructions.mapIndexed { index, insnNode -> if (insnNode !is FieldInsnNode) -1 else if (
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is FieldInsnNode) -1 else if (
             insnNode.owner == mapClass(owner) &&
             insnNode.name == mapMethod(owner, name, desc) &&
             insnNode.desc == desc
         ) index else -1
-        }.filter { it >= 0 }
+        }.filter { it >= 0 })
     }
 }
 
@@ -131,8 +131,8 @@ enum class ConstantType {
  * constant types.
  */
 class ConstantTarget(private vararg val types: ConstantType) : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
-        return node.instructions.mapIndexed { index, insnNode ->
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return CursorsFixed(node.instructions.mapIndexed { index, insnNode ->
             index to (when (insnNode) {
                 is InsnNode -> when (insnNode.opcode) {
                     Opcodes.ACONST_NULL -> ConstantType.NULL in types
@@ -154,6 +154,6 @@ class ConstantTarget(private vararg val types: ConstantType) : AbstractKhasmTarg
                 }
                 else -> false
             }).toInt()
-        }.filter { it.second > 0 }.map { it.first }
+        }.filter { it.second > 0 }.map { it.first })
     }
 }

@@ -18,55 +18,72 @@ import org.objectweb.asm.tree.MethodNode
  */
 @Suppress("unused")
 abstract class AbstractKhasmTarget {
-    private var after: AbstractKhasmTarget? = null
-    private var afterAction: TargetChainAction? = null
+    private var dependsOn: AbstractKhasmTarget? = null
+    private var dependentAction: TargetChainAction? = null
 
-    private var cursorFilter: (List<Int>) -> List<Int> = { it }
+    private var cursorFilter: (CursorsFixed) -> CursorsFixed = { it }
 
-    protected abstract fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int>
+    protected abstract fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed
 
-    private fun getFilteredCursors(range: IntRange, node: MethodNode): List<Int> {
+    private fun getFilteredCursors(range: IntRange, node: MethodNode): CursorsFixed {
         return cursorFilter(getPossibleCursors(range, node))
     }
 
     /**
      * Returns all the valid target locations for [node]
      */
-    fun getCursors(node: MethodNode): List<Int> {
-        if (after == null) {
-            return getFilteredCursors(IntRange.ANY, node)
-        }
+    fun getCursors(node: MethodNode): Cursors {
+        return if (dependsOn == null) {
+            getFilteredCursors(IntRange.ANY, node)
+        } else {
+            if (dependsOn != null) {
+                when (dependentAction) {
+                    TargetChainAction.INSIDE -> {
+                        val first = getFilteredCursors(IntRange.ANY, node).points.sorted()
 
-        return when(afterAction) {
-            TargetChainAction.INSIDE -> {
-                val unpackedRanges = after?.getCursors(node)?.toMutableList() ?: return emptyList()
-                val ranges = mutableListOf<IntRange>()
-                while (unpackedRanges.isNotEmpty()) {
-                    ranges.add(IntRange(unpackedRanges.removeFirst(), unpackedRanges.removeFirst()))
-                }
-                getFilteredCursors(IntRange.ANY, node).filter { int ->
-                    ranges.any { range ->
-                        range.contains(int)
+                        when (val depends = dependsOn!!.getCursors(node)) {
+                            is CursorsFixed -> throw UnsupportedOperationException("Can't use inside on CursorsFixed! (Create a range with until, and/or make sure your range is grouped with ()!)")
+                            is CursorRanges -> {
+                                val out: MutableList<Int> = mutableListOf()
+
+                                first.forEach {
+                                    if (depends.ranges.any { intRange ->
+                                        intRange.contains(it)
+                                    }) {
+                                        out.add(it)
+                                    }
+                                }
+
+                                CursorsFixed(out.sorted())
+                            }
+                        }
                     }
-                }
-            }
-            TargetChainAction.UNTIL -> {
-                val startPoints = getFilteredCursors(IntRange.ANY, node).sorted()
-                val stoppingPoints =
-                    after?.getFilteredCursors(IntRange.ANY, node)?.sorted()
-                        ?: return emptyList()
-                val possible = higherValueZip(startPoints.toMutableList(), stoppingPoints.toMutableList())
+                    TargetChainAction.UNTIL -> {
+                        val first = getFilteredCursors(IntRange.ANY, node).points.sorted()
+                        val depends = dependsOn!!.getFilteredCursors(IntRange.ANY, node).points.sorted()
 
-                val out = mutableListOf<Int>()
-                possible.forEach { out.add(it.first); out.add(it.second) }
-                out
+                        val zip = higherValueZip(first.toMutableList(), depends.toMutableList())
+
+                        val out: MutableList<IntRange> = mutableListOf()
+
+                        for (pair in zip) {
+                            out.add(IntRange(pair.first, pair.second))
+                        }
+
+                        CursorRanges(out)
+                    }
+                    TargetChainAction.AND_OR -> {
+                        val first = getFilteredCursors(IntRange.ANY, node).points.sorted()
+                        val depends = dependsOn!!.getFilteredCursors(IntRange.ANY, node).points.sorted()
+                        val mut = first.toMutableList()
+                        mut.addAll(depends)
+                        CursorsFixed(mut)
+                    }
+                    null -> CursorsFixed()
+                }
+            } else {
+                CursorsFixed()
             }
-            TargetChainAction.AND_OR -> {
-                val output = getFilteredCursors(IntRange.ANY, node).toMutableList()
-                output.addAll(after?.getFilteredCursors(IntRange.ANY, node) ?: emptyList())
-                output
-            }
-            null -> emptyList()
         }
     }
 
@@ -75,7 +92,7 @@ abstract class AbstractKhasmTarget {
      */
     fun first(): AbstractKhasmTarget {
         cursorFilter = {
-            listOf(it.first())
+            CursorsFixed(it.points.first())
         }
         return this
     }
@@ -85,7 +102,7 @@ abstract class AbstractKhasmTarget {
      */
     fun last(): AbstractKhasmTarget {
         cursorFilter = {
-            listOf(it.last())
+            CursorsFixed(it.points.last())
         }
         return this
     }
@@ -95,7 +112,7 @@ abstract class AbstractKhasmTarget {
      */
     fun ordinal(index: Int): AbstractKhasmTarget {
         cursorFilter = {
-            listOf(it[index])
+            CursorsFixed(it.points[index])
         }
         return this
     }
@@ -105,32 +122,42 @@ abstract class AbstractKhasmTarget {
      *
      * One example for this might be to use the offset of the reported targets:
      * ```
-     * target.filter { it.map { n -> n + 1 } }
+     * target.filter { cursorsFixed -> CursorsFixed(cursorsFixed.points.map { it + 1 }) }
      * ```
      */
-    fun filter(lambda: (List<Int>) -> List<Int>): AbstractKhasmTarget {
+    fun filter(lambda: (CursorsFixed) -> CursorsFixed): AbstractKhasmTarget {
         cursorFilter = lambda
         return this
     }
 
     /**
-     * Only targets that also fall within the options of [other]
+     * Only targets that also fall within the range of [other]
+     *
+     * If [other] does not return a [CursorRanges] this will throw
      */
     infix fun inside(other: AbstractKhasmTarget): AbstractKhasmTarget {
         println("INSIDE: $this -> $other")
 
-        after = other
-        afterAction = TargetChainAction.INSIDE
+        verifyNotSet()
+
+        dependsOn = other
+        dependentAction = TargetChainAction.INSIDE
 
         return this
     }
 
-    @Deprecated("Current implementation is broken and does not work as the intended result.")
+    /**
+     * Generates a [CursorRanges] between the 2 targets using [higherValueZip]
+     *
+     * This can not be passed directly! Use [inside] or custom logic to make this passable
+     */
     infix fun until(other: AbstractKhasmTarget): AbstractKhasmTarget {
         println("UNTIL: $this -> $other")
 
-        after = other
-        afterAction = TargetChainAction.UNTIL
+        verifyNotSet()
+
+        dependsOn = other
+        dependentAction = TargetChainAction.UNTIL
 
         return this
     }
@@ -141,9 +168,17 @@ abstract class AbstractKhasmTarget {
     infix fun andOr(other: AbstractKhasmTarget): AbstractKhasmTarget {
         println("AND_OR: $this -> $other")
 
-        after = other
-        afterAction = TargetChainAction.AND_OR
+        verifyNotSet()
+
+        dependsOn = other
+        dependentAction = TargetChainAction.AND_OR
 
         return this
+    }
+
+    private fun verifyNotSet() {
+        if (dependsOn != null || dependentAction != null) {
+            throw UnsupportedOperationException("Improper chaining! $this is already chained to $dependsOn through $dependentAction! (Try using () to group targets into proper order)")
+        }
     }
 }

@@ -2,6 +2,7 @@
 
 package net.khasm.transform.target
 
+import net.khasm.annotation.IKnowThatThisCanBlowUp
 import org.objectweb.asm.tree.*
 import kotlin.reflect.KClass
 
@@ -13,8 +14,8 @@ import kotlin.reflect.KClass
  * if you'd like to reuse the same logic.
  */
 class CustomTarget(private val lambda: MethodNode.() -> List<Int>) : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
-        return lambda(node).filter(range::contains)
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return CursorsFixed(lambda(node).filter(range::contains))
     }
 }
 
@@ -24,9 +25,10 @@ class CustomTarget(private val lambda: MethodNode.() -> List<Int>) : AbstractKha
  * Note: this can be dangerous as other transformers
  * may have already changed the method.
  */
+@IKnowThatThisCanBlowUp
 class RawTarget(private vararg val cursors: Int) : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
-        return cursors.asList().filter(range::contains)
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return CursorsFixed(cursors.asList().filter(range::contains))
     }
 }
 
@@ -34,14 +36,14 @@ class RawTarget(private vararg val cursors: Int) : AbstractKhasmTarget() {
  * Inject at every instance of an opcode.
  */
 class OpcodeTarget(private val opcode: Int) : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
         val output = mutableListOf<Int>()
         node.instructions.forEachIndexed { index, it ->
             if (it.opcode == opcode) {
                 output.add(index )
             }
         }
-        return output
+        return CursorsFixed(output)
     }
 }
 
@@ -50,9 +52,9 @@ class OpcodeTarget(private val opcode: Int) : AbstractKhasmTarget() {
  * ([LdcInsnNode], [VarInsnNode], [LabelNode], etc).
  */
 class AsmInstructionTarget(private val type: KClass<out AbstractInsnNode>) : AbstractKhasmTarget() {
-    override fun getPossibleCursors(range: IntRange, node: MethodNode): List<Int> {
-        return node.instructions.mapIndexed { index, insnNode -> index to (type.isInstance(insnNode)) }
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> index to (type.isInstance(insnNode)) }
             .filter { it.second }
-            .map { it.first }
+            .map { it.first })
     }
 }

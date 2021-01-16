@@ -5,6 +5,8 @@ package net.khasm.transform
 import codes.som.anthony.koffee.MethodAssembly
 import codes.som.anthony.koffee.koffee
 import net.khasm.transform.target.AbstractKhasmTarget
+import net.khasm.transform.target.CursorRanges
+import net.khasm.transform.target.CursorsFixed
 import net.khasm.util.UnknownInsnNode
 import net.khasm.util.logger
 import org.objectweb.asm.tree.AbstractInsnNode
@@ -59,6 +61,11 @@ class KhasmTransformer {
                 if (shouldTransformMethod(method)) {
                     logger.info("Transforming method " + method.name + method.desc)
                     val cursors = targetPredicate.getCursors(method)
+
+                    if (cursors is CursorRanges) {
+                        throw UnsupportedOperationException("Tried to pass a CursorRanges to target!")
+                    }
+
                     val oldInsns = method.instructions.toList()
 
                     // clear instruction list then tell it that code exists
@@ -67,7 +74,7 @@ class KhasmTransformer {
                     insnListRemoveAll(method.instructions, true)
                     method.visitCode()
                     // split method instructions into the sections identified by the requested targets
-                    val sections = getInsnSections(oldInsns, cursors.sorted())
+                    val sections = getInsnSections(oldInsns, (cursors as CursorsFixed).points.sorted())
                     // use Koffee for direct bytecode-style commands (aload_2, iastore, etc)
                     method.koffee {
                         for ((section, nextIdx) in sections.mapIndexed { idx, list -> list to idx + 1 }.filter { it.second < sections.size }) {
