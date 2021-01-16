@@ -3,21 +3,14 @@ package net.khasm.transform
 import codes.som.anthony.koffee.MethodAssembly
 import net.fabricmc.loader.api.FabricLoader
 import net.khasm.transform.target.AbstractKhasmTarget
+import net.khasm.util.mapClass
+import net.khasm.util.mapMethod
 import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 class KhasmTransformerBuilder(method: KhasmTransformerBuilder.() -> Unit) {
-    fun mapClass(intermediary: String): String =
-        FabricLoader.getInstance().mappingResolver.mapClassName("intermediary", intermediary)
-
-    fun mapField(owner: String, intermediary: String, descriptor: String): String =
-        FabricLoader.getInstance().mappingResolver.mapFieldName("intermediary", owner, intermediary, descriptor)
-
-    fun mapMethod(owner: String, intermediary: String, descriptor: String): String =
-        FabricLoader.getInstance().mappingResolver.mapMethodName("intermediary", owner, intermediary, descriptor)
-
     private val working = KhasmTransformer()
 
     init {

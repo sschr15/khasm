@@ -2,7 +2,8 @@
 
 package net.khasm.transform.target
 
-import net.fabricmc.loader.api.FabricLoader
+import net.khasm.util.mapClass
+import net.khasm.util.mapMethod
 import net.khasm.util.toInt
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
@@ -48,15 +49,6 @@ class LastReturnTarget : AbstractKhasmTarget() {
     }
 }
 
-private fun mapClass(name: String) =
-    FabricLoader.getInstance().mappingResolver.mapClassName("intermediary", name)
-
-private fun mapField(owner: String, name: String, desc: String) =
-    FabricLoader.getInstance().mappingResolver.mapFieldName("intermediary", owner, name, desc)
-
-private fun mapMethod(owner: String, name: String, desc: String) =
-    FabricLoader.getInstance().mappingResolver.mapMethodName("intermediary", owner, name, desc)
-
 /**
  * Inject at every invocation of a method.
  * This target is equivalent to [`@At("INVOKE")`][BeforeInvoke]
@@ -68,7 +60,7 @@ private fun mapMethod(owner: String, name: String, desc: String) =
 class MethodInvocationTarget(private val owner: String, private val name: String, private val desc: String) : AbstractKhasmTarget() {
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
         return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is MethodInsnNode) -1 else {
-            if (insnNode.owner.replace("/", ".") == mapClass(owner) && insnNode.name == mapMethod(owner, name, desc) && insnNode.desc == desc) index else -1
+            if (insnNode.owner.replace("/", ".") == mapClass(owner) && insnNode.name == mapMethod(owner, name, desc)) index else -1
         } }.filter { it >= 0 })
     }
 }

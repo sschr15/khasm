@@ -3,8 +3,10 @@ package net.khasm.test
 import codes.som.anthony.koffee.insns.jvm.getstatic
 import codes.som.anthony.koffee.insns.jvm.invokevirtual
 import codes.som.anthony.koffee.insns.jvm.ldc
+import net.fabricmc.loader.api.FabricLoader
 import net.khasm.transform.KhasmTransformerDispatcher
 import net.khasm.transform.target.HeadTarget
+import net.khasm.transform.target.MethodInvocationTarget
 import java.io.PrintStream
 
 object KhasmTest {
