@@ -45,15 +45,27 @@ abstract class AbstractKhasmTarget {
                             is CursorsFixed -> throw UnsupportedOperationException("Can't use inside on CursorsFixed! (Create a range with until, and/or make sure your range is grouped with ()!)")
                             is CursorRanges -> {
                                 val out: MutableList<Int> = mutableListOf()
-
-                                first.forEach {
-                                    if (depends.ranges.any { intRange ->
-                                        intRange.contains(it)
-                                    }) {
-                                        out.add(it)
+                                first.forEach { int ->
+                                    if (depends.ranges.any { it.contains(int) }) {
+                                        out.add(int)
                                     }
                                 }
+                                CursorsFixed(out.sorted())
+                            }
+                        }
+                    }
+                    TargetChainAction.EXCLUDING -> {
+                        val first = getFilteredCursors(IntRange.ANY, node).points.sorted()
 
+                        when (val depends = dependsOn!!.getCursors(node)) {
+                            is CursorsFixed -> throw UnsupportedOperationException("Can't use inside on CursorsFixed! (Create a range with until, and/or make sure your range is grouped with ()!)")
+                            is CursorRanges -> {
+                                val out: MutableList<Int> = mutableListOf()
+                                first.forEach { int ->
+                                    if (depends.ranges.none { it.contains(int) }) {
+                                        out.add(int)
+                                    }
+                                }
                                 CursorsFixed(out.sorted())
                             }
                         }
@@ -142,6 +154,22 @@ abstract class AbstractKhasmTarget {
 
         dependsOn = other
         dependentAction = TargetChainAction.INSIDE
+
+        return this
+    }
+
+    /**
+     * Only targets that do not fall within the range of [other]
+     *
+     * If [other] does not return a [CursorRanges] this will throw
+     */
+    infix fun excluding(other: AbstractKhasmTarget): AbstractKhasmTarget {
+        println("EXCLUDING: $this -> $other")
+
+        verifyNotSet()
+
+        dependsOn = other
+        dependentAction = TargetChainAction.EXCLUDING
 
         return this
     }

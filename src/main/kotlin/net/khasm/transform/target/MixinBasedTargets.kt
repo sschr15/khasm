@@ -68,7 +68,7 @@ private fun mapMethod(owner: String, name: String, desc: String) =
 class MethodInvocationTarget(private val owner: String, private val name: String, private val desc: String) : AbstractKhasmTarget() {
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
         return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is MethodInsnNode) -1 else {
-            if (insnNode.owner == mapClass(owner) && insnNode.name == mapMethod(owner, name, desc) && insnNode.desc == desc) index else -1
+            if (insnNode.owner.replace("/", ".") == mapClass(owner) && insnNode.name == mapMethod(owner, name, desc) && insnNode.desc == desc) index else -1
         } }.filter { it >= 0 })
     }
 }
