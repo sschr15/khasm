@@ -4,6 +4,7 @@ import org.objectweb.asm.tree.ClassNode
 
 object KhasmTransformerDispatcher {
     private val transformers : MutableList<KhasmTransformer> = mutableListOf()
+    private val transformersToRemove: MutableList<KhasmTransformer> = mutableListOf()
 
     fun registerTransformer(transformer: KhasmTransformer) {
         transformers.add(transformer)
@@ -15,7 +16,11 @@ object KhasmTransformerDispatcher {
 
     fun tryTransform(node: ClassNode) {
         transformers.forEach {
-            it.tryTransformClass(node)
+            if (it.tryTransformClass(node)) {
+                transformersToRemove.add(it)
+            }
         }
+        transformers.removeAll(transformersToRemove)
+        transformersToRemove.clear()
     }
 }

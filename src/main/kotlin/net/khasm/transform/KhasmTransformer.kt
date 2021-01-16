@@ -25,6 +25,9 @@ class KhasmTransformer {
     private lateinit var targetPredicate: AbstractKhasmTarget
     private lateinit var action: MethodAssembly.(AbstractInsnNode) -> Unit
 
+    // Marks transformer as targeting a single class and thus cant be thrown away once transformed (probably a micro-optimisation idc)
+    internal var oneTimeUse = false
+
     internal var overrideMethod = false
 
     // Predicate setters
@@ -54,7 +57,7 @@ class KhasmTransformer {
     }
 
     // Actual transformation
-    fun tryTransformClass(classNode: ClassNode) {
+    fun tryTransformClass(classNode: ClassNode): Boolean {
         if (shouldTransformClass(classNode)) {
             logger.info(classNode.name + " is being transformed")
             for (method in classNode.methods) {
@@ -92,7 +95,9 @@ class KhasmTransformer {
                     method.visitEnd()
                 }
             }
+            return oneTimeUse
         }
+        return false
     }
 
     private fun getInsnSections(instructions: List<AbstractInsnNode>, breakLocations: List<Int>): List<List<AbstractInsnNode>> {

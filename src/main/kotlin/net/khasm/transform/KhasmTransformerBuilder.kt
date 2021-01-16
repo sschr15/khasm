@@ -21,6 +21,7 @@ class KhasmTransformerBuilder(method: KhasmTransformerBuilder.() -> Unit) {
         classTarget {
             name.replace('/', '.') == mapClass(targetClass)
         }
+        working.oneTimeUse = true
     }
 
     fun classTarget(lambda: ClassNode.() -> Boolean) {
