@@ -61,12 +61,13 @@ class MethodInvocationTarget(private val owner: String, private val name: String
     private val mappedClass = mapClass(owner)
     private val mappedMethod = mapMethod(owner, name, desc)
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
-        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is MethodInsnNode) -1 else {
-            if (insnNode.owner.replace("/", ".") == mappedClass &&
-                insnNode.name == mappedMethod &&
-                insnNode.desc == desc)
-            index else -1
-        } }.filter { it >= 0 })
+        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (
+            insnNode is MethodInsnNode &&
+            insnNode.owner.replace("/", ".") == mappedClass &&
+            insnNode.name == mappedMethod &&
+            insnNode.desc == desc
+        ) index else -1
+        }.filter { it >= 0 })
     }
 }
 
@@ -84,7 +85,8 @@ class FieldReadTarget(private val owner: String, private val name: String, priva
     private val mappedClass = mapClass(owner)
     private val mappedMethod = mapMethod(owner, name, desc)
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
-        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is FieldInsnNode) -1 else if (
+        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (
+            insnNode is FieldInsnNode &&
             insnNode.owner.replace("/", ".") == mappedClass &&
             insnNode.name == mappedMethod &&
             insnNode.desc == desc
@@ -107,7 +109,8 @@ class FieldWriteTarget(private val owner: String, private val name: String, priv
     private val mappedClass = mapClass(owner)
     private val mappedMethod = mapMethod(owner, name, desc)
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
-        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is FieldInsnNode) -1 else if (
+        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (
+            insnNode is FieldInsnNode &&
             insnNode.owner == mappedClass &&
             insnNode.name == mappedMethod &&
             insnNode.desc == desc
