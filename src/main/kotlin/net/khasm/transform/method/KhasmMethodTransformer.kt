@@ -2,6 +2,8 @@
 
 package net.khasm.transform.method
 
+import codes.som.anthony.koffee.insns.jvm.invokestatic
+import codes.som.anthony.koffee.insns.sugar.push_int
 import codes.som.anthony.koffee.koffee
 import net.khasm.transform.method.action.ActionBuilder
 import net.khasm.transform.method.action.RawMethodTransformer
@@ -9,6 +11,7 @@ import net.khasm.transform.method.action.SmartMethodTransformer
 import net.khasm.transform.method.target.AbstractKhasmTarget
 import net.khasm.transform.method.target.CursorRanges
 import net.khasm.transform.method.target.CursorsFixed
+import net.khasm.util.FunctionCallerAndRegistry
 import net.khasm.util.UnknownInsnNode
 import net.khasm.util.logger
 import org.objectweb.asm.tree.AbstractInsnNode
@@ -93,7 +96,13 @@ class KhasmMethodTransformer {
                                     } catch (e: IndexOutOfBoundsException) {
                                         UnknownInsnNode()
                                     })
-                                is SmartMethodTransformer -> TODO("Implement smart injects")
+                                is SmartMethodTransformer -> {
+                                    // Save the Function<Unit> to the registry
+                                    val index = FunctionCallerAndRegistry.addFunction(methodTransformer.action)
+                                    // Inject the code to call it (will need modifying in future for local and parameter capture)
+                                    push_int(index)
+                                    invokestatic(FunctionCallerAndRegistry::class, "callFunction", "(I)V")
+                                }
                             }
                         }
                     }
