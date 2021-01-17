@@ -1,7 +1,6 @@
 package net.khasm.transform
 
 import codes.som.anthony.koffee.MethodAssembly
-import net.fabricmc.loader.api.FabricLoader
 import net.khasm.transform.target.AbstractKhasmTarget
 import net.khasm.util.mapClass
 import net.khasm.util.mapMethod
