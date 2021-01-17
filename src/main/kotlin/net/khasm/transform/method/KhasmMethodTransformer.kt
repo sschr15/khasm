@@ -2,8 +2,10 @@
 
 package net.khasm.transform.method
 
-import codes.som.anthony.koffee.MethodAssembly
 import codes.som.anthony.koffee.koffee
+import net.khasm.transform.method.action.ActionBuilder
+import net.khasm.transform.method.action.RawMethodTransformer
+import net.khasm.transform.method.action.SmartMethodTransformer
 import net.khasm.transform.method.target.AbstractKhasmTarget
 import net.khasm.transform.method.target.CursorRanges
 import net.khasm.transform.method.target.CursorsFixed
@@ -23,12 +25,10 @@ class KhasmMethodTransformer {
 
     // Transforming methods
     private lateinit var targetPredicate: AbstractKhasmTarget
-    private lateinit var action: MethodAssembly.(AbstractInsnNode) -> Unit
+    private lateinit var actionBuilder: ActionBuilder
 
-    // Marks transformer as targeting a single class and thus cant be thrown away once transformed (probably a micro-optimisation idc)
+    // Marks transformer as targeting a single class and thus can be thrown away once transformed (probably a micro-optimisation idc)
     internal var oneTimeUse = false
-
-    internal var overrideMethod = false
 
     // Predicate setters
     fun setClassPredicate(predicate: (ClassNode) -> Boolean) {
@@ -43,8 +43,8 @@ class KhasmMethodTransformer {
         targetPredicate = predicate
     }
 
-    fun setAction(action: MethodAssembly.(AbstractInsnNode) -> Unit) {
-        this.action = action
+    fun setAction(action: ActionBuilder.() -> Unit) {
+        this.actionBuilder = ActionBuilder(action)
     }
 
     // Predicate testing
@@ -68,6 +68,9 @@ class KhasmMethodTransformer {
                         throw UnsupportedOperationException("Tried to pass a CursorRanges to target!")
                     }
 
+                    val methodTransformer = actionBuilder.methodTransformer
+                        ?: throw IllegalStateException("Method is targeted with no action set!")
+
                     val oldInsns = method.instructions.toList()
 
                     // clear instruction list then tell it that code exists
@@ -81,15 +84,22 @@ class KhasmMethodTransformer {
                     method.koffee {
                         for ((section, nextIdx) in sections.mapIndexed { idx, list -> list to idx + 1 }.filter { it.second < sections.size }) {
                             // if we shouldn't override the method, insert whatever code should go first
-                            if (!overrideMethod) section.forEach { instructions.add(it) }
+                            if (!methodTransformer.isOverwrite()) section.forEach { instructions.add(it) }
 
                             // We use a try/catch block just in case some weird list access stuff would occur
-                            this.action(try { sections[nextIdx][0] } catch (e: IndexOutOfBoundsException) { UnknownInsnNode() })
+                            when (methodTransformer) {
+                                is RawMethodTransformer -> methodTransformer.action(this, try {
+                                        sections[nextIdx][0]
+                                    } catch (e: IndexOutOfBoundsException) {
+                                        UnknownInsnNode()
+                                    })
+                                is SmartMethodTransformer -> TODO("Implement smart injects")
+                            }
                         }
                     }
 
                     // the last group of instructions
-                    if (!overrideMethod) sections.lastOrNull()?.forEach { method.instructions.add(it) }
+                    if (!methodTransformer.isOverwrite()) sections.lastOrNull()?.forEach { method.instructions.add(it) }
                     // method's all done being modified, end it off
                     method.visitEnd()
                 }

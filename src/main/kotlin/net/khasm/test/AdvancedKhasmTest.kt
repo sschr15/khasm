@@ -50,9 +50,11 @@ object AdvancedKhasmTest {
             target { HeadTarget() }
 
             action {
-                aload_0 // this
-                checkcast(TableSwitchGenerator::class)
-                invokeinterface(TableSwitchGenerator::class, "generateDefault", void)
+                rawInject {
+                    aload_0 // this
+                    checkcast(TableSwitchGenerator::class)
+                    invokeinterface(TableSwitchGenerator::class, "generateDefault", void)
+                }
             }
         }
     }

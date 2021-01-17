@@ -1,10 +1,9 @@
 package net.khasm.transform.method
 
-import codes.som.anthony.koffee.MethodAssembly
+import net.khasm.transform.method.action.ActionBuilder
 import net.khasm.transform.method.target.AbstractKhasmTarget
 import net.khasm.util.mapClass
 import net.khasm.util.mapMethod
-import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 
@@ -37,20 +36,11 @@ class KhasmMethodTransformerBuilder(method: KhasmMethodTransformerBuilder.() -> 
         working.setMethodPredicate(lambda)
     }
 
-    /**
-     * Call this method at some point to
-     * set the transformer to overwriting the
-     * method instead of injecting within it.
-     */
-    fun overwrite() {
-        working.overrideMethod = true
-    }
-
     fun target(lambda: () -> AbstractKhasmTarget) {
         working.setTargetPredicate(lambda())
     }
 
-    fun action(action: MethodAssembly.(AbstractInsnNode) -> Unit) {
+    fun action(action: ActionBuilder.() -> Unit) {
         working.setAction(action)
     }
 

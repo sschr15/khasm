@@ -24,9 +24,11 @@ object KhasmTest {
             }
 
             action {
-                getstatic(System::class, "out", PrintStream::class)
-                ldc("This line is printed by the example khasm transformer!")
-                invokevirtual(PrintStream::class, "println", void, String::class)
+                rawInject {
+                    getstatic(System::class, "out", PrintStream::class)
+                    ldc("This line is printed by the example khasm transformer!")
+                    invokevirtual(PrintStream::class, "println", void, String::class)
+                }
             }
         }
     }
