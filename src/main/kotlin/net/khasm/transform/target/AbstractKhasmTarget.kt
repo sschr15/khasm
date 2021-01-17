@@ -2,6 +2,7 @@ package net.khasm.transform.target
 
 import net.khasm.util.ANY
 import net.khasm.util.higherValueZip
+import net.khasm.util.logger
 import org.objectweb.asm.tree.MethodNode
 
 /**
@@ -148,13 +149,12 @@ abstract class AbstractKhasmTarget {
      * If [other] does not return a [CursorRanges] this will throw
      */
     infix fun inside(other: AbstractKhasmTarget): AbstractKhasmTarget {
-        println("INSIDE: $this -> $other")
-
         verifyNotSet()
 
         dependsOn = other
         dependentAction = TargetChainAction.INSIDE
 
+        logger.info("INSIDE: $this")
         return this
     }
 
@@ -164,12 +164,12 @@ abstract class AbstractKhasmTarget {
      * If [other] does not return a [CursorRanges] this will throw
      */
     infix fun excluding(other: AbstractKhasmTarget): AbstractKhasmTarget {
-        println("EXCLUDING: $this -> $other")
-
         verifyNotSet()
 
         dependsOn = other
         dependentAction = TargetChainAction.EXCLUDING
+
+        logger.info("EXCLUDING: $this")
 
         return this
     }
@@ -180,12 +180,12 @@ abstract class AbstractKhasmTarget {
      * This can not be passed directly! Use [inside] or custom logic to make this passable
      */
     infix fun until(other: AbstractKhasmTarget): AbstractKhasmTarget {
-        println("UNTIL: $this -> $other")
-
         verifyNotSet()
 
         dependsOn = other
         dependentAction = TargetChainAction.UNTIL
+
+        logger.info("UNTIL: $this")
 
         return this
     }
@@ -194,12 +194,12 @@ abstract class AbstractKhasmTarget {
      * All targets matched by either this or [other]
      */
     infix fun andOr(other: AbstractKhasmTarget): AbstractKhasmTarget {
-        println("AND_OR: $this -> $other")
-
         verifyNotSet()
 
         dependsOn = other
         dependentAction = TargetChainAction.AND_OR
+
+        logger.info("AND_OR: $this")
 
         return this
     }
@@ -208,5 +208,9 @@ abstract class AbstractKhasmTarget {
         if (dependsOn != null || dependentAction != null) {
             throw UnsupportedOperationException("Improper chaining! $this is already chained to $dependsOn through $dependentAction! (Try using () to group targets into proper order)")
         }
+    }
+
+    override fun toString(): String {
+        return (this::class.simpleName ?: "MISSING") + if (dependsOn != null) "($dependentAction -> $dependsOn)" else ""
     }
 }

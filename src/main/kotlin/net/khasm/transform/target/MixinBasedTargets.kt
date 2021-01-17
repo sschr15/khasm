@@ -58,9 +58,14 @@ class LastReturnTarget : AbstractKhasmTarget() {
  * a Minecraft method invocation.
  */
 class MethodInvocationTarget(private val owner: String, private val name: String, private val desc: String) : AbstractKhasmTarget() {
+    private val mappedClass = mapClass(owner)
+    private val mappedMethod = mapMethod(owner, name, desc)
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
         return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is MethodInsnNode) -1 else {
-            if (insnNode.owner.replace("/", ".") == mapClass(owner) && insnNode.name == mapMethod(owner, name, desc)) index else -1
+            if (insnNode.owner.replace("/", ".") == mappedClass &&
+                insnNode.name == mappedMethod &&
+                insnNode.desc == desc)
+            index else -1
         } }.filter { it >= 0 })
     }
 }
@@ -76,10 +81,12 @@ class MethodInvocationTarget(private val owner: String, private val name: String
  * @see FieldWriteTarget for injecting when fields are written to
  */
 class FieldReadTarget(private val owner: String, private val name: String, private val desc: String) : AbstractKhasmTarget() {
+    private val mappedClass = mapClass(owner)
+    private val mappedMethod = mapMethod(owner, name, desc)
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
         return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is FieldInsnNode) -1 else if (
-            insnNode.owner == mapClass(owner) &&
-            insnNode.name == mapMethod(owner, name, desc) &&
+            insnNode.owner.replace("/", ".") == mappedClass &&
+            insnNode.name == mappedMethod &&
             insnNode.desc == desc
         ) index else -1
         }.filter { it >= 0 })
@@ -97,10 +104,12 @@ class FieldReadTarget(private val owner: String, private val name: String, priva
  * @see FieldReadTarget for injecting when fields are read
  */
 class FieldWriteTarget(private val owner: String, private val name: String, private val desc: String) : AbstractKhasmTarget() {
+    private val mappedClass = mapClass(owner)
+    private val mappedMethod = mapMethod(owner, name, desc)
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
         return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> if (insnNode !is FieldInsnNode) -1 else if (
-            insnNode.owner == mapClass(owner) &&
-            insnNode.name == mapMethod(owner, name, desc) &&
+            insnNode.owner == mappedClass &&
+            insnNode.name == mappedMethod &&
             insnNode.desc == desc
         ) index else -1
         }.filter { it >= 0 })
