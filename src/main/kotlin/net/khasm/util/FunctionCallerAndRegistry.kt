@@ -1,6 +1,9 @@
 package net.khasm.util
 
-object FunctionCallerAndRegistry {
+/**
+ * An internal class used for smart injects
+ */
+internal object FunctionCallerAndRegistry {
     private val functions: MutableList<Function<Unit>> = mutableListOf()
 
     fun addFunction(function: Function<Unit>): Int {
