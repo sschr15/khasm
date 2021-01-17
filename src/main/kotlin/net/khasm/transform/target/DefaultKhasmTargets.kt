@@ -2,7 +2,7 @@
 
 package net.khasm.transform.target
 
-import net.khasm.annotation.IKnowThatThisCanBlowUp
+import net.khasm.annotation.DangerousKhasmUsage
 import org.objectweb.asm.tree.*
 import kotlin.reflect.KClass
 
@@ -25,7 +25,7 @@ class CustomTarget(private val lambda: MethodNode.() -> List<Int>) : AbstractKha
  * Note: this can be dangerous as other transformers
  * may have already changed the method.
  */
-@IKnowThatThisCanBlowUp
+@DangerousKhasmUsage
 class RawTarget(private vararg val cursors: Int) : AbstractKhasmTarget() {
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
         return CursorsFixed(cursors.asList().filter(range::contains))

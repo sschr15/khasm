@@ -96,7 +96,21 @@ publishing {
 compileKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
+        freeCompilerArgs = ["-Xopt-in=kotlin.RequiresOptIn"]
     }
 }
 
-compileKotlin.kotlinOptions.jvmTarget = "1.8"
+dokkaHtml {
+    dokkaSourceSets {
+        configureEach {
+            externalDocumentationLink {
+                // ASM
+                url = URL("https://asm.ow2.io/javadoc/")
+            }
+            externalDocumentationLink {
+                // Mixin
+                url = URL("https://docs.concern.i.ng/mixin/")
+            }
+        }
+    }
+}
