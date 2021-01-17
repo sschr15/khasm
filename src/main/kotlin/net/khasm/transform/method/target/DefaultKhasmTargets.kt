@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package net.khasm.transform.target
+package net.khasm.transform.method.target
 
 import net.khasm.annotation.DangerousKhasmUsage
 import org.objectweb.asm.tree.*

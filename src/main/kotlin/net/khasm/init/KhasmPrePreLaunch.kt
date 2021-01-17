@@ -4,7 +4,7 @@ import net.devtech.grossfabrichacks.entrypoints.PrePreLaunch
 import net.devtech.grossfabrichacks.transformer.TransformerApi
 import net.fabricmc.loader.api.FabricLoader
 import net.khasm.test.KhasmTest
-import net.khasm.transform.KhasmTransformerDispatcher
+import net.khasm.transform.method.KhasmMethodTransformerDispatcher
 import net.khasm.util.logger
 import java.nio.file.Files
 
@@ -20,7 +20,7 @@ class KhasmPrePreLaunch : PrePreLaunch {
         TransformerApi.registerPreMixinAsmClassTransformer { name, node ->
             // No recursion, maybe security as well? idk
             if (!name.startsWith("net/khasm")) {
-                KhasmTransformerDispatcher.tryTransform(node)
+                KhasmMethodTransformerDispatcher.tryTransform(node)
                 node.visitEnd()
             }
         }
