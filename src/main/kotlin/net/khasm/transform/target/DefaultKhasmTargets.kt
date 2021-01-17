@@ -40,7 +40,7 @@ class OpcodeTarget(private val opcode: Int) : AbstractKhasmTarget() {
         val output = mutableListOf<Int>()
         node.instructions.forEachIndexed { index, it ->
             if (it.opcode == opcode) {
-                output.add(index )
+                output.add(index)
             }
         }
         return CursorsFixed(output)
