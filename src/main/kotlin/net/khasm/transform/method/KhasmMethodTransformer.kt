@@ -2,7 +2,7 @@
 
 package net.khasm.transform.method
 
-import codes.som.anthony.koffee.insns.jvm.invokestatic
+import codes.som.anthony.koffee.insns.jvm.*
 import codes.som.anthony.koffee.insns.sugar.push_int
 import codes.som.anthony.koffee.koffee
 import net.khasm.transform.method.action.ActionBuilder
@@ -13,12 +13,11 @@ import net.khasm.transform.method.target.CursorRanges
 import net.khasm.transform.method.target.CursorsFixed
 import net.khasm.util.FunctionCallerAndRegistry
 import net.khasm.util.UnknownInsnNode
+import net.khasm.util.localVar
 import net.khasm.util.logger
-import org.objectweb.asm.tree.AbstractInsnNode
-import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.InsnList
-import org.objectweb.asm.tree.MethodNode
+import org.objectweb.asm.tree.*
 import java.lang.Integer.max
+import kotlin.jvm.internal.Intrinsics
 import kotlin.math.min
 
 class KhasmMethodTransformer {
@@ -32,6 +31,9 @@ class KhasmMethodTransformer {
 
     // Marks transformer as targeting a single class and thus can be thrown away once transformed (probably a micro-optimisation idc)
     internal var oneTimeUse = false
+
+    // Counter for smart injects
+    private var smartInjectCounter = 0L
 
     // Predicate setters
     fun setClassPredicate(predicate: (ClassNode) -> Boolean) {
@@ -97,11 +99,35 @@ class KhasmMethodTransformer {
                                         UnknownInsnNode()
                                     })
                                 is SmartMethodTransformer -> {
-                                    // Save the Function<Unit> to the registry
+                                    // Save the Function<*> to the registry
                                     val index = FunctionCallerAndRegistry.addFunction(methodTransformer.action)
-                                    // Inject the code to call it (will need modifying in future for local and parameter capture)
+
+                                    // Create our labels for the condition
+                                    val startLabel = LabelNode()
+                                    val endLabel = LabelNode()
+
+                                    // Start inject
+                                    instructions.add(startLabel)
+                                    // Local variable
+                                    localVar("smartKhasmInject${smartInjectCounter}", Object::class, null, startLabel, endLabel, 1)
+                                    // Push the index of the function
                                     push_int(index)
-                                    invokestatic(FunctionCallerAndRegistry::class, "callFunction", "(I)V")
+                                    // Tell our registry to call the function using the provided index
+                                    invokestatic(FunctionCallerAndRegistry::class, "callFunction", "(I)Ljava/lang/Object;")
+                                    // Load Unit.INSTANCE
+                                    getstatic(Unit::class, "INSTANCE", "kotlin/Unit")
+                                    // If not equal, jump to end of inject
+                                    invokestatic(Intrinsics::class, "areEqual", "(Ljava/lang/Object;Ljava/lang/Object;)Z")
+                                    ifne(endLabel)
+                                    // Return nothing, or the value, dpending on method signature
+                                    if (method.desc.endsWith("V")) {
+                                        _return
+                                    } else {
+                                        aload_1
+                                        areturn
+                                    }
+                                    // End inject
+                                    instructions.add(endLabel)
                                 }
                             }
                         }

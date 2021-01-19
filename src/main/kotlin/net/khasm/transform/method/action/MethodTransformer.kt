@@ -14,7 +14,7 @@ sealed class MethodTransformer(val type: MethodActionType) {
 
 data class RawMethodTransformer(val typeRaw: MethodActionType, val action: MethodAssembly.(AbstractInsnNode) -> Unit): MethodTransformer(typeRaw)
 
-data class SmartMethodTransformer(val typeSmart: MethodActionType, val action: Function<Unit>) : MethodTransformer(typeSmart)
+data class SmartMethodTransformer(val typeSmart: MethodActionType, val action: Function<*>) : MethodTransformer(typeSmart)
 
 enum class MethodActionType {
     RAW_INJECT,

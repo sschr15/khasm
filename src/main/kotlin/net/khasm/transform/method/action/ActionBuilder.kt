@@ -1,6 +1,7 @@
 package net.khasm.transform.method.action
 
 import codes.som.anthony.koffee.MethodAssembly
+import net.khasm.annotation.DangerousKhasmUsage
 import org.objectweb.asm.tree.AbstractInsnNode
 
 class ActionBuilder(method: ActionBuilder.() -> Unit) {
@@ -29,15 +30,19 @@ class ActionBuilder(method: ActionBuilder.() -> Unit) {
     /**
      * Allows you to inject the method with ASM that calls the provided lambda/function specified by targets
      */
-    fun smartInject(action: Function<Unit>) {
+    fun smartInject(action: Function<*>) {
         verifyNotSet()
         methodTransformer = SmartMethodTransformer(MethodActionType.SMART_INJECT, action)
     }
 
     /**
      * Allows you to overwrite the method with ASM that calls the provided lambda/function
+     *
+     * This technically replaces the method with a call that invokes the passed lambda, not the lambda code itself
+     * making this completely incompatible with further mixins or transformations
      */
-    fun smartOverwrite(action: Function<Unit>) {
+    @DangerousKhasmUsage
+    fun smartOverwrite(action: Function<*>) {
         verifyNotSet()
         methodTransformer = SmartMethodTransformer(MethodActionType.SMART_OVERWRITE, action)
     }

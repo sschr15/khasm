@@ -49,4 +49,4 @@ fun Boolean.toInt() = if (this) 1 else 0
 /**
  * Returns the type arguments for a Function, last one is always the return type
  */
-fun Function<Unit>.typeArguments(): List<Type> = (this::class.java.genericInterfaces[0] as ParameterizedTypeImpl).actualTypeArguments.toList()
+fun Function<*>.typeArguments(): List<Type> = (this::class.java.genericInterfaces[0] as ParameterizedTypeImpl).actualTypeArguments.toList()
