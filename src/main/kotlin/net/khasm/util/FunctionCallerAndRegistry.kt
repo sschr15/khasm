@@ -33,7 +33,8 @@ internal object FunctionCallerAndRegistry {
                 parameterTypes.removeLast()
 
                 val invoke = getInternalInvoke(function)
-                return invoke(function, Random.nextInt())
+                println(argCountOfFunction(function))
+                return invoke(function)
             }
 
             null -> throw NullPointerException("Injected khasm function $function does not exist")
@@ -45,5 +46,9 @@ internal object FunctionCallerAndRegistry {
         val method = function::class.java.methods.first { method -> method.name == "invoke" }
         method.isAccessible = true
         return method
+    }
+
+    private fun argCountOfFunction(function: Function<*>): Int {
+        return function::class.java.name.last().toInt()
     }
 }

@@ -16,6 +16,8 @@ import net.khasm.util.UnknownInsnNode
 import net.khasm.util.localVar
 import net.khasm.util.logger
 import org.objectweb.asm.tree.*
+import org.spongepowered.asm.util.Locals
+import java.io.PrintStream
 import java.lang.Integer.max
 import kotlin.jvm.internal.Intrinsics
 import kotlin.math.min
@@ -106,14 +108,28 @@ class KhasmMethodTransformer {
                                     val startLabel = LabelNode()
                                     val endLabel = LabelNode()
 
+                                    // Get the amount of locals
+                                    val allTheLocals = Locals.getLocalsAt(classNode, method, section[0])
+                                    val localCount = allTheLocals.size
+
                                     // Start inject
                                     instructions.add(startLabel)
                                     // Local variable
-                                    localVar("smartKhasmInject${smartInjectCounter}", Object::class, null, startLabel, endLabel, 1)
+                                    localVar("smartKhasmInject${smartInjectCounter}",
+                                        Object::class,
+                                        null,
+                                        startLabel,
+                                        endLabel,
+                                        localCount
+                                    )
+
                                     // Push the index of the function
                                     push_int(index)
                                     // Tell our registry to call the function using the provided index
                                     invokestatic(FunctionCallerAndRegistry::class, "callFunction", "(I)Ljava/lang/Object;")
+                                    // Save and load the value
+                                    astore(localCount)
+                                    aload(localCount)
                                     // Load Unit.INSTANCE
                                     getstatic(Unit::class, "INSTANCE", "kotlin/Unit")
                                     // If not equal, jump to end of inject
