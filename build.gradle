@@ -14,13 +14,16 @@ group = project.maven_group
 
 repositories {
     maven {
-        url = 'https://maven.hackery.site/'
+        url 'https://maven.hackery.site/'
     }
     maven {
-        url = "https://dl.bintray.com/user11681/maven"
+        url 'https://dl.bintray.com/user11681/maven'
     }
     maven {
         url 'https://jitpack.io'
+    }
+    maven {
+        url 'https://maven.concern.i.ng'
     }
     jcenter()
 }
@@ -31,13 +34,14 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-    include(implementation('com.github.P03W:GrossFabricHacks:master-SNAPSHOT'))
+    include(modImplementation("com.github.P03W:GrossFabricHacks:master-SNAPSHOT"))
     include(modImplementation("user11681:dynamicentry:0.0.2"))
     include(implementation("user11681:reflect:0.2.0"))
     include(implementation("net.gudenau.lib:unsafe:1.2.14"))
+    include(implementation("sschr15.tools:better-paths:1.1.0"))
 
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
-    include modApi('codes.som.anthony:koffee:8.0.2')
+    include api("codes.som.anthony:koffee:8.0.2")
 }
 
 processResources {

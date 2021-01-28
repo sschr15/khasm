@@ -2,9 +2,10 @@ package net.khasm.transform.method.action
 
 import codes.som.anthony.koffee.MethodAssembly
 import org.objectweb.asm.tree.AbstractInsnNode
+import java.util.*
 
 sealed class MethodTransformer(val type: MethodActionType) {
-    fun isOverwrite(): Boolean {
+    val isOverwrite get(): Boolean {
         return when(type) {
             MethodActionType.RAW_OVERWRITE, MethodActionType.SMART_OVERWRITE -> true
             MethodActionType.SMART_INJECT, MethodActionType.RAW_INJECT -> false
@@ -12,9 +13,11 @@ sealed class MethodTransformer(val type: MethodActionType) {
     }
 }
 
-data class RawMethodTransformer(val typeRaw: MethodActionType, val action: MethodAssembly.(AbstractInsnNode) -> Unit): MethodTransformer(typeRaw)
+class RawMethodTransformer(typeRaw: MethodActionType, val action: MethodAssembly.(AbstractInsnNode) -> Unit): MethodTransformer(typeRaw)
 
-data class SmartMethodTransformer(val typeSmart: MethodActionType, val action: Function<*>) : MethodTransformer(typeSmart)
+class SmartMethodTransformer(typeSmart: MethodActionType, val action: Function<*>) : MethodTransformer(typeSmart) {
+    val internalName = "\$khasm\$smartInject\$${Integer.toHexString(Random().nextInt())}"
+}
 
 enum class MethodActionType {
     RAW_INJECT,

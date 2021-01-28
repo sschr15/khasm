@@ -26,7 +26,8 @@
   "depends": {
     "fabricloader": ">=0.10.8",
     "minecraft": "*",
-    "grossfabrichacks": ">=6.1"
+    "grossfabrichacks": ">=6.1",
+    "fabric-language-kotlin": ">=1.4.0"
   },
   "custom": {
     "modmenu:api": true
