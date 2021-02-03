@@ -1,10 +1,13 @@
 package net.khasm.transform.method.action
 
 import codes.som.anthony.koffee.MethodAssembly
+import codes.som.anthony.koffee.sugar.TypesAccess
+import codes.som.anthony.koffee.types.TypeLike
 import net.khasm.annotation.DangerousKhasmUsage
 import org.objectweb.asm.tree.AbstractInsnNode
 
-class ActionBuilder(method: ActionBuilder.() -> Unit) {
+// TypesAccess interface is for accessing the `int` and other primitive types for smartInject
+class ActionBuilder(method: ActionBuilder.() -> Unit) : TypesAccess {
     var methodTransformer: MethodTransformer? = null
 
     init {
@@ -30,9 +33,9 @@ class ActionBuilder(method: ActionBuilder.() -> Unit) {
     /**
      * Allows you to inject the method with ASM that calls the provided lambda/function specified by targets
      */
-    fun smartInject(action: Function<*>) {
+    fun smartInject(vararg localVariableTypes: TypeLike, action: Function<*>) {
         verifyNotSet()
-        methodTransformer = SmartMethodTransformer(MethodActionType.SMART_INJECT, action)
+        methodTransformer = SmartMethodTransformer(MethodActionType.SMART_INJECT, action, *localVariableTypes)
     }
 
     /**

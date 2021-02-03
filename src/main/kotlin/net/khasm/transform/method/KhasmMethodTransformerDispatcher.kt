@@ -1,5 +1,6 @@
 package net.khasm.transform.method
 
+import net.khasm.transform.method.action.SmartMethodTransformer
 import org.objectweb.asm.tree.ClassNode
 
 object KhasmMethodTransformerDispatcher {
@@ -23,4 +24,6 @@ object KhasmMethodTransformerDispatcher {
         transformers.removeAll(transformersToRemove)
         transformersToRemove.clear()
     }
+
+    internal val appliedFunctions = mutableMapOf<String, MutableList<SmartMethodTransformer>>()
 }

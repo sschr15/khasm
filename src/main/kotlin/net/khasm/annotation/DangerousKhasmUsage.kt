@@ -1,5 +1,11 @@
 package net.khasm.annotation
 
+/**
+ * Using something annotated with this may result in causing
+ * unintended behavior within Minecraft itself.
+ * Opt in with [`@DangerousKhasmUsage`][DangerousKhasmUsage]
+ * or with a compile flag.
+ */
 @RequiresOptIn(
     level = RequiresOptIn.Level.ERROR,
     message = "Usage of this may result in issues with further transformers or improper usage, " +

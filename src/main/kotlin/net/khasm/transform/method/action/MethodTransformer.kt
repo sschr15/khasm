@@ -1,6 +1,8 @@
 package net.khasm.transform.method.action
 
 import codes.som.anthony.koffee.MethodAssembly
+import codes.som.anthony.koffee.types.TypeLike
+import codes.som.anthony.koffee.types.coerceType
 import org.objectweb.asm.tree.AbstractInsnNode
 import java.util.*
 
@@ -15,7 +17,8 @@ sealed class MethodTransformer(val type: MethodActionType) {
 
 class RawMethodTransformer(typeRaw: MethodActionType, val action: MethodAssembly.(AbstractInsnNode) -> Unit): MethodTransformer(typeRaw)
 
-class SmartMethodTransformer(typeSmart: MethodActionType, val action: Function<*>) : MethodTransformer(typeSmart) {
+class SmartMethodTransformer(typeSmart: MethodActionType, val action: Function<*>, vararg params: TypeLike) : MethodTransformer(typeSmart) {
+    val params = params.map { coerceType(it).className }
     val internalName = "\$khasm\$smartInject\$${Integer.toHexString(Random().nextInt())}"
 }
 

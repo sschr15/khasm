@@ -7,6 +7,7 @@ object KhasmTest {
     /**
      * This is functionally equivalent to the fabric-example-mod example mixin (with a slight text change)
      */
+    @Suppress("RedundantLambdaArrow")
     fun registerTest() {
         KhasmMethodTransformerDispatcher.registerMethodTransformer {
             // TitleScreen

@@ -11,15 +11,11 @@ import net.khasm.transform.method.action.SmartMethodTransformer
 import net.khasm.transform.method.target.AbstractKhasmTarget
 import net.khasm.transform.method.target.CursorRanges
 import net.khasm.transform.method.target.CursorsFixed
-import net.khasm.util.FunctionCallerAndRegistry
 import net.khasm.util.UnknownInsnNode
-import net.khasm.util.localVar
 import net.khasm.util.logger
+import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
-import org.spongepowered.asm.util.Locals
-import java.io.PrintStream
 import java.lang.Integer.max
-import kotlin.jvm.internal.Intrinsics
 import kotlin.math.min
 
 class KhasmMethodTransformer {
@@ -91,7 +87,7 @@ class KhasmMethodTransformer {
                     method.koffee {
                         for ((section, nextIdx) in sections.mapIndexed { idx, list -> list to idx + 1 }.filter { it.second < sections.size }) {
                             // if we shouldn't override the method, insert whatever code should go first
-                            if (!methodTransformer.isOverwrite()) section.forEach { instructions.add(it) }
+                            if (!methodTransformer.isOverwrite) section.forEach { instructions.add(it) }
 
                             // We use a try/catch block just in case some weird list access stuff would occur
                             when (methodTransformer) {
@@ -101,56 +97,77 @@ class KhasmMethodTransformer {
                                         UnknownInsnNode()
                                     })
                                 is SmartMethodTransformer -> {
-                                    // Save the Function<*> to the registry
-                                    val index = FunctionCallerAndRegistry.addFunction(methodTransformer.action)
-
-                                    // Create our labels for the condition
-                                    val startLabel = LabelNode()
-                                    val endLabel = LabelNode()
-
-                                    // Get the amount of locals
-                                    val allTheLocals = Locals.getLocalsAt(classNode, method, section[0])
-                                    val localCount = allTheLocals.size
-
-                                    // Start inject
-                                    instructions.add(startLabel)
-                                    // Local variable
-                                    localVar("smartKhasmInject${smartInjectCounter}",
-                                        Object::class,
-                                        null,
-                                        startLabel,
-                                        endLabel,
-                                        localCount
-                                    )
-
-                                    // Push the index of the function
-                                    push_int(index)
-                                    // Tell our registry to call the function using the provided index
-                                    invokestatic(FunctionCallerAndRegistry::class, "callFunction", "(I)Ljava/lang/Object;")
-                                    // Save and load the value
-                                    astore(localCount)
-                                    aload(localCount)
-                                    // Load Unit.INSTANCE
-                                    getstatic(Unit::class, "INSTANCE", "kotlin/Unit")
-                                    // If not equal, jump to end of inject
-                                    invokestatic(Intrinsics::class, "areEqual", "(Ljava/lang/Object;Ljava/lang/Object;)Z")
-                                    ifne(endLabel)
-                                    // Return nothing, or the value, dpending on method signature
-                                    if (method.desc.endsWith("V")) {
-                                        _return
-                                    } else {
-                                        aload_1
-                                        areturn
+                                    // Create the method reference so we can call it
+                                    var field = FieldNode(0, null, null, null, null)
+                                    classNode.koffee {
+                                        field = field(
+                                            private + static + synthetic, methodTransformer.internalName,
+                                            Function::class
+                                        )
+                                        KhasmMethodTransformerDispatcher.appliedFunctions
+                                            .getOrPut(node.name) { mutableListOf() }
+                                            .add(methodTransformer)
                                     }
-                                    // End inject
-                                    instructions.add(endLabel)
+
+                                    // Get arguments and return type
+                                    val args = methodTransformer.params
+                                    val returnType = Type.getReturnType(node.desc)
+
+                                    getstatic(classNode, field)
+
+                                    // load local variables
+                                    push_int(args.size)
+                                    anewarray(Any::class)
+
+                                    for (i in args.indices) {
+                                        dup
+                                        push_int(i)
+
+                                        // This is a fiendishly complicated way to turn primiteves into an object
+                                        val type = when (args[i]) {
+                                            "int" -> int
+                                            "long" -> long
+                                            "byte" -> byte
+                                            "char" -> char
+                                            "short" -> short
+                                            "float" -> float
+                                            "double" -> double
+                                            "boolean" -> boolean
+                                            else -> coerceType(Any::class)
+                                        }
+                                        when (type) {
+                                            byte, short, int, char, boolean -> iload(i)
+                                            long -> lload(i)
+                                            float -> fload(i)
+                                            double -> dload(i)
+                                            else -> aload(i)
+                                        }
+                                        invokestatic("net/khasm/transform/KhasmRuntimeAPI", "toObject", Any::class, type)
+
+                                        aastore
+                                    }
+
+                                    // invoke the "correct" way
+                                    invokestatic("net/khasm/transform/KhasmRuntimeAPI", "invoke", Any::class, Function::class, Array<Any>::class)
+
+                                    // if overwriting, return the result as intended
+                                    if (methodTransformer.isOverwrite) {
+                                        when (returnType.className) {
+                                            in listOf("byte", "short", "int", "boolean", "char") -> ireturn
+                                            "long" -> lreturn
+                                            "float" -> freturn
+                                            "double" -> dreturn
+                                            "void" -> `return`
+                                            else -> areturn
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
 
                     // the last group of instructions
-                    if (!methodTransformer.isOverwrite()) sections.lastOrNull()?.forEach { method.instructions.add(it) }
+                    if (!methodTransformer.isOverwrite) sections.lastOrNull()?.forEach { method.instructions.add(it) }
                     // method's all done being modified, end it off
                     method.visitEnd()
                 }

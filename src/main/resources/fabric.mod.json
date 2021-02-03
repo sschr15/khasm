@@ -21,6 +21,12 @@
         "adapter": "kotlin",
         "value": "net.khasm.init.KhasmPrePreLaunch"
       }
+    ],
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "net.khasm.init.KhasmInit"
+      }
     ]
   },
   "depends": {

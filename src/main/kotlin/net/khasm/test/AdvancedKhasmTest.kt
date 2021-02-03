@@ -4,6 +4,8 @@ import codes.som.anthony.koffee.insns.jvm.*
 import net.khasm.transform.`class`.KhasmClassTransformerDispatcher
 import net.khasm.transform.method.KhasmMethodTransformerDispatcher
 import net.khasm.transform.method.target.HeadTarget
+import net.khasm.util.mapClass
+import net.minecraft.client.gui.screen.TitleScreen
 import org.objectweb.asm.Label
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.TableSwitchGenerator
@@ -57,5 +59,24 @@ object AdvancedKhasmTest {
                 }
             }
         }
+
+        KhasmMethodTransformerDispatcher.registerMethodTransformer {
+            // TitleScreen
+            classTarget("net.minecraft.class_442")
+
+            // Screen.init (see KhasmTest)
+            methodTarget("net.minecraft.class_437", "method_25426", "()V")
+
+            target { HeadTarget() }
+
+            action {
+                smartInject(mapClass("net.minecraft.class_442"), action = AdvancedKhasmTest::thing)
+            }
+        }
+    }
+
+    @JvmStatic
+    fun thing(thiz: TitleScreen) {
+        println(thiz.height)
     }
 }
