@@ -2,7 +2,6 @@ package net.khasm.test
 
 import codes.som.anthony.koffee.insns.jvm.*
 import net.khasm.transform.`class`.KhasmClassTransformerDispatcher
-import net.khasm.transform.method.KhasmMethodTransformerDispatcher
 import net.khasm.transform.method.target.HeadTarget
 import net.khasm.util.mapClass
 import net.minecraft.client.gui.screen.TitleScreen
@@ -40,37 +39,32 @@ object AdvancedKhasmTest {
                     `return`
                 }
             }
-        }
 
-        KhasmMethodTransformerDispatcher.registerMethodTransformer {
-            // TitleScreen
-            classTarget("net.minecraft.class_442")
+            // transformMethod automatically sets the class target to the current class target.
+            transformMethod {
+                // Screen.init (see KhasmTest)
+                methodTarget("net.minecraft.class_437", "method_25426", "()V")
 
-            // Screen.init (see KhasmTest)
-            methodTarget("net.minecraft.class_437", "method_25426", "()V")
+                target { HeadTarget() }
 
-            target { HeadTarget() }
-
-            action {
-                rawInject {
-                    aload_0 // this
-                    checkcast(TableSwitchGenerator::class)
-                    invokeinterface(TableSwitchGenerator::class, "generateDefault", void)
+                action {
+                    rawInject {
+                        aload_0 // this
+                        checkcast(TableSwitchGenerator::class)
+                        invokeinterface(TableSwitchGenerator::class, "generateDefault", void)
+                    }
                 }
             }
-        }
 
-        KhasmMethodTransformerDispatcher.registerMethodTransformer {
-            // TitleScreen
-            classTarget("net.minecraft.class_442")
+            transformMethod {
+                // Screen.init (see KhasmTest)
+                methodTarget("net.minecraft.class_437", "method_25426", "()V")
 
-            // Screen.init (see KhasmTest)
-            methodTarget("net.minecraft.class_437", "method_25426", "()V")
+                target { HeadTarget() }
 
-            target { HeadTarget() }
-
-            action {
-                smartInject(mapClass("net.minecraft.class_442"), action = AdvancedKhasmTest::thing)
+                action {
+                    smartInject(mapClass("net.minecraft.class_442"), action = AdvancedKhasmTest::thing)
+                }
             }
         }
     }

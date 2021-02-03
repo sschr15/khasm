@@ -3,6 +3,8 @@ package net.khasm.transform.`class`
 import codes.som.anthony.koffee.ClassAssembly
 import codes.som.anthony.koffee.types.TypeLike
 import net.khasm.annotation.DangerousKhasmUsage
+import net.khasm.transform.method.KhasmMethodTransformerBuilder
+import net.khasm.transform.method.KhasmMethodTransformerDispatcher
 import net.khasm.util.mapClass
 import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.tree.ClassNode
@@ -63,6 +65,13 @@ class KhasmClassTransformerBuilder(method: KhasmClassTransformerBuilder.() -> Un
      */
     fun ClassAssembly.implement(type: TypeLike) {
         node.interfaces.add(coerceType(type).internalName)
+    }
+
+    fun transformMethod(transformer: KhasmMethodTransformerBuilder.() -> Unit) {
+        KhasmMethodTransformerDispatcher.registerMethodTransformer {
+            classTarget(working.transformClassPredicate)
+            transformer()
+        }
     }
 
     fun build(): KhasmClassTransformer = working
