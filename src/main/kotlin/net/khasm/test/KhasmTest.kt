@@ -22,7 +22,7 @@ object KhasmTest {
 
             action {
                 smartInject {
-                    println("This line is printed by the example khasm transformer!")
+                    throw Exception("This is an example!")
                 }
             }
         }

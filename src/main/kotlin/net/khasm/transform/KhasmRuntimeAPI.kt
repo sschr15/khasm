@@ -41,7 +41,7 @@ fun toObject(obj: Any?): Any? {
 }
 
 fun <T> invoke(function: Function<T>, vararg args: Any?): T? {
-    val method = function.javaClass.declaredMethods[1]
+    val method = function.javaClass.declaredMethods[0]
     method.isAccessible = true
     @Suppress("UNCHECKED_CAST")
     return method(function, *args) as? T
