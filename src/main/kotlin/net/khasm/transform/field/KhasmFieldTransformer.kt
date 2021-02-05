@@ -4,6 +4,7 @@ package net.khasm.transform.field
 
 import codes.som.anthony.koffee.types.TypeLike
 import codes.som.anthony.koffee.types.coerceType
+import net.khasm.util.logger
 import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.Opcodes.*
 import org.objectweb.asm.Type
@@ -51,6 +52,10 @@ class KhasmFieldTransformer(private val node: FieldNode) {
                 node.access and access.inv()
             }
         }
+    }
+
+    init {
+        logger.info("Transforming field ${node.name} (type ${node.desc})")
     }
 }
 

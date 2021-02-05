@@ -53,8 +53,16 @@ class OpcodeTarget(private val opcode: Int) : AbstractKhasmTarget() {
  */
 class AsmInstructionTarget(private val type: KClass<out AbstractInsnNode>) : AbstractKhasmTarget() {
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
-        return CursorsFixed(node.instructions.mapIndexed { index, insnNode -> index to (type.isInstance(insnNode)) }
-            .filter { it.second }
-            .map { it.first })
+        return CursorsFixed(node.instructions.mapIndexedNotNull { index, insnNode ->
+            if (type.isInstance(insnNode)) index else null
+        })
+    }
+}
+
+class LineNumberTarget(private val searchedNumber: Int) : AbstractKhasmTarget() {
+    override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
+        return CursorsFixed(node.instructions.mapIndexedNotNull { index, insnNode ->
+            if (insnNode is LineNumberNode && insnNode.line == searchedNumber) index else null
+        })
     }
 }

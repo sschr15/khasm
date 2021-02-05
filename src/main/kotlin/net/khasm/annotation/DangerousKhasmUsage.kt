@@ -16,6 +16,7 @@ package net.khasm.annotation
     AnnotationTarget.CLASS,
     AnnotationTarget.FUNCTION,
     AnnotationTarget.CONSTRUCTOR,
-    AnnotationTarget.FIELD
+    AnnotationTarget.FIELD,
+    AnnotationTarget.VALUE_PARAMETER
 )
 annotation class DangerousKhasmUsage
