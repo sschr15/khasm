@@ -5,11 +5,13 @@ import net.devtech.grossfabrichacks.transformer.TransformerApi
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.loader.api.FabricLoader
 import net.khasm.KhasmLoad
+import net.khasm.exception.AlreadyTransformingException
 import net.khasm.test.AdvancedKhasmTest
 import net.khasm.test.KhasmTest
 import net.khasm.transform.`class`.KhasmClassTransformerDispatcher
 import net.khasm.transform.method.KhasmMethodTransformerDispatcher
 import net.khasm.util.logger
+import net.minecraft.client.gui.screen.TitleScreen
 import sschr15.tools.betterpaths.*
 import java.security.MessageDigest
 
@@ -17,6 +19,8 @@ import java.security.MessageDigest
 class KhasmPrePreLaunch : PrePreLaunch {
     private val debugFolder = FabricLoader.getInstance().gameDir.resolve("khasm")
     private val hashes = mutableMapOf<String, ByteArray>()
+
+    private val currentlyTransforming: MutableList<String> = mutableListOf()
 
     override fun onPrePreLaunch() {
         logger.info("Khasm is running from prePreLaunch!")
@@ -33,12 +37,20 @@ class KhasmPrePreLaunch : PrePreLaunch {
             .forEach(KhasmLoad::loadTransformers)
 
         TransformerApi.registerPreMixinAsmClassTransformer { name, node ->
+            if (currentlyTransforming.contains(name)) {
+                throw AlreadyTransformingException(name)
+            } else {
+                currentlyTransforming.add(name)
+            }
+
             // No recursion, maybe security as well? idk
             if (!name.startsWith("net/khasm")) {
                 KhasmClassTransformerDispatcher.tryTransform(node)
                 KhasmMethodTransformerDispatcher.tryTransform(node)
                 node.visitEnd()
             }
+
+            currentlyTransforming.remove(name)
         }
 
         if (debugFolder.exists() && debugFolder.isDirectory()) {
