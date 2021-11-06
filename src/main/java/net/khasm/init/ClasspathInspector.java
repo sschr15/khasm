@@ -1,151 +1,105 @@
 package net.khasm.init;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
+
 import java.io.File;
-import java.io.FilenameFilter;
-import java.io.Serializable;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 
 /**
  * Find classes in the classpath (reads JARs and classpath folders).
  *
+ * This has been modified by sschr15 to use Paths instead of File objects for easier jar-in-jar support.
+ *
  * @author P&aring;l Brattberg, brattberg@gmail.com
- * @see http://gist.github.com/pal
+ * @see <a href=https://gist.github.com/pal/110024/8a845866d3aad6865a4d2cad2b3eff112b61b1d5>Source</a>
  */
-@SuppressWarnings("unchecked")
 public class ClasspathInspector {
-    static boolean DEBUG = false;
+    private static final Map<String, String> classToSuperClass = new HashMap<>();
 
-    public static List<Class> getAllKnownClasses() {
-        List<Class> classFiles = new ArrayList<Class>();
-        List<File> classLocations = getClassLocationsForCurrentClasspath();
-        for (File file : classLocations) {
-            classFiles.addAll(getClassesFromPath(file));
+    public static Map<String, String> getClasses() throws Throwable {
+        classToSuperClass.clear();
+        loadJavaClasses();
+        List<Path> classLocations = getClassLocationsForCurrentClasspath();
+        for (Path file : classLocations) {
+            getClassesFromPath(file);
         }
-        return classFiles;
+        return classToSuperClass;
     }
 
-    public static List<Class> getMatchingClasses(Class interfaceOrSuperclass) {
-        List<Class> matchingClasses = new ArrayList<Class>();
-        List<Class> classes = getAllKnownClasses();
-        log("checking %s classes", classes.size());
-        for (Class clazz : classes) {
-            if (interfaceOrSuperclass.isAssignableFrom(clazz)) {
-                matchingClasses.add(clazz);
-                log("class %s is assignable from %s", interfaceOrSuperclass, clazz);
-            }
-        }
-        return matchingClasses;
-    }
-
-    public static List<Class> getMatchingClasses(String validPackagePrefix, Class interfaceOrSuperclass) {
-        throw new IllegalStateException("Not yet implemented!");
-    }
-
-    public static List<Class> getMatchingClasses(String validPackagePrefix) {
-        throw new IllegalStateException("Not yet implemented!");
-    }
-
-    private static Collection<? extends Class> getClassesFromPath(File path) {
-        if (path.isDirectory()) {
-            return getClassesFromDirectory(path);
+    private static void getClassesFromPath(Path path) throws Throwable {
+        if (Files.isDirectory(path)) {
+            getClassesFromDirectory(path);
         } else {
-            return getClassesFromJarFile(path);
+            getClassesFromJarFile(path);
         }
     }
 
-    private static String fromFileToClassName(final String fileName) {
-        return fileName.substring(0, fileName.length() - 6).replaceAll("/|\\\\", "\\.");
-    }
-
-    private static List<Class> getClassesFromJarFile(File path) {
-        List<Class> classes = new ArrayList<Class>();
-        log("getClassesFromJarFile: Getting classes for " + path);
-
-        try {
-            if (path.canRead()) {
-                JarFile jar = new JarFile(path);
-                Enumeration<JarEntry> en = jar.entries();
-                while (en.hasMoreElements()) {
-                    JarEntry entry = en.nextElement();
-                    if (entry.getName().endsWith("class")) {
-                        String className = fromFileToClassName(entry.getName());
-                        log("\tgetClassesFromJarFile: found " + className);
-                        Class claz = Class.forName(className);
-                        classes.add(claz);
+    private static void getClassesFromJarFile(Path path) throws Throwable {
+        if (Files.isReadable(path)) {
+            Path rootOfJar = FileSystems.newFileSystem(path).getPath("/");
+            for (Path filePath1 : Files.walk(rootOfJar).toList()) {
+                if (!Files.isDirectory(filePath1) && filePath1.getFileName().toString().endsWith(".class")) {
+                    ClassNode classNode = new ClassNode();
+                    ClassReader classReader;
+                    try {
+                        classReader = new ClassReader(Files.readAllBytes(filePath1));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    classReader.accept(classNode, 0);
+                    classToSuperClass.put(classNode.name, classNode.superName);
+                }
+            }
+            // Because Fabric adds jar files in META-INF/jars to the classpath at runtime, we need to check there as well.
+            if (Files.exists(rootOfJar.resolve("META-INF")) && Files.exists(rootOfJar.resolve("META-INF").resolve("jars"))) {
+                for (Path filePath : Files.newDirectoryStream(rootOfJar.resolve("META-INF/jars"))) {
+                    if (!Files.isDirectory(filePath) && filePath.getFileName().toString().endsWith("jar")) {
+                        getClassesFromJarFile(filePath);
                     }
                 }
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to read classes from jar file: " + path, e);
         }
-
-        return classes;
     }
 
-    private static List<Class> getClassesFromDirectory(File path) {
-        List<Class> classes = new ArrayList<Class>();
-        log("getClassesFromDirectory: Getting classes for " + path);
-
+    private static void getClassesFromDirectory(Path path) throws Throwable {
         // get jar files from top-level directory
-        List<File> jarFiles = listFiles(path, new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".jar");
-            }
-        }, false);
-        for (File file : jarFiles) {
-            classes.addAll(getClassesFromJarFile(file));
+        List<Path> jarFiles = listFiles(path, entry -> entry.endsWith(".jar"), false);
+        for (Path file : jarFiles) {
+            getClassesFromJarFile(file);
         }
 
         // get all class-files
-        List<File> classFiles = listFiles(path, new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".class");
-            }
-        }, true);
-
-        // List<URL> urlList = new ArrayList<URL>();
-        // List<String> classNameList = new ArrayList<String>();
-        int substringBeginIndex = path.getAbsolutePath().length() + 1;
-        for (File classfile : classFiles) {
-            String className = classfile.getAbsolutePath().substring(substringBeginIndex);
-            className = fromFileToClassName(className);
-            log("Found class %s in path %s: ", className, path);
-            try {
-                classes.add(Class.forName(className));
-            } catch (Throwable e) {
-                log("Couldn't create class %s. %s: ", className, e);
-            }
-
+        List<Path> classFiles = listFiles(path, entry -> entry.endsWith(".class"), true);
+        for (Path classfile : classFiles) {
+            ClassNode classNode = new ClassNode();
+            byte[] classBytes = Files.readAllBytes(classfile);
+            ClassReader classReader = new ClassReader(classBytes);
+            classReader.accept(classNode, 0);
+            classToSuperClass.put(classNode.name, classNode.superName);
         }
-
-        return classes;
     }
 
-    private static List<File> listFiles(File directory, FilenameFilter filter, boolean recurse) {
-        List<File> files = new ArrayList<File>();
-        File[] entries = directory.listFiles();
-
+    private static List<Path> listFiles(Path directory, DirectoryStream.Filter<Path> filter, boolean recurse) throws IOException {
+        List<Path> files = new ArrayList<>();
         // Go over entries
-        for (File entry : entries) {
+        for (Path entry : Files.newDirectoryStream(directory, filter)) {
             // If there is no filter or the filter accepts the
             // file / directory, add it to the list
-            if (filter == null || filter.accept(directory, entry.getName())) {
+            if (filter.accept(entry)) {
                 files.add(entry);
             }
 
             // If the file is a directory and the recurse flag
             // is set, recurse into the directory
-            if (recurse && entry.isDirectory()) {
-                files.addAll(listFiles(entry, filter, recurse));
+            if (recurse && Files.isDirectory(entry)) {
+                files.addAll(listFiles(entry, filter, true));
             }
         }
 
@@ -153,53 +107,55 @@ public class ClasspathInspector {
         return files;
     }
 
-    public static List<File> getClassLocationsForCurrentClasspath() {
-        List<File> urls = new ArrayList<File>();
+    public static List<Path> getClassLocationsForCurrentClasspath() {
+        List<Path> urls = new ArrayList<>();
         String javaClassPath = System.getProperty("java.class.path");
         if (javaClassPath != null) {
             for (String path : javaClassPath.split(File.pathSeparator)) {
-                urls.add(new File(path));
+                urls.add(Path.of(path));
             }
         }
         return urls;
     }
 
-    // todo: this is only partial, probably
-    public static URL normalize(URL url) throws MalformedURLException {
-        String spec = url.getFile();
+    private static void loadJavaClasses() throws Throwable {
+        List<String> missingClasses = new ArrayList<>();
 
-        // get url base - remove everything after ".jar!/??" , if exists
-        final int i = spec.indexOf("!/");
-        if (i != -1) {
-            spec = spec.substring(0, spec.indexOf("!/"));
+        // Use Java src.zip file to find what Java classes exist
+        Path javaSrcZipRoot = FileSystems.newFileSystem(findJavaSourceZip()).getPath("/");
+        for (Path filePath : Files.walk(javaSrcZipRoot).toList()) {
+            if (!Files.isDirectory(filePath) && filePath.getFileName().toString().endsWith(".java")) {
+                String classFileName = filePath.toAbsolutePath().toString().replace(".java", ".class");
+                if (classFileName.contains("module-info") || classFileName.contains("package-info")) continue;
+                classFileName = classFileName.substring(classFileName.indexOf("/", 1) + 1); // remove module name
+                InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(classFileName);
+                if (is == null) {
+                    // I don't know why this happens, but it does
+                    missingClasses.add(filePath.toAbsolutePath().toString());
+                    continue;
+                }
+                byte[] classBytes = Objects.requireNonNull(is).readAllBytes();
+                ClassNode classNode = new ClassNode();
+                ClassReader classReader = new ClassReader(classBytes);
+                classReader.accept(classNode, 0);
+                classToSuperClass.put(classNode.name, classNode.superName);
+            }
         }
-
-        // uppercase windows drive
-        url = new URL(url, spec);
-        final String file = url.getFile();
-        final int i1 = file.indexOf(':');
-        if (i1 != -1) {
-            String drive = file.substring(i1 - 1, 2).toUpperCase();
-            url = new URL(url, file.substring(0, i1 - 1) + drive + file.substring(i1));
-        }
-
-        return url;
+        System.out.println("Missing classes: " + (missingClasses.size() < 50 ? missingClasses : missingClasses.size()));
     }
 
-    private static void log(String pattern, final Object... args) {
-        if (DEBUG)
-            System.out.printf(pattern + "\n", args);
-    }
+    private static Path findJavaSourceZip() {
+        Path javaHome = Path.of(System.getProperty("java.home"));
+        // jdk 8 and similar
+        Path jdk8Zip = javaHome.resolve("src.zip");
+        // more modern jdk
+        Path modernZip = javaHome.resolve("lib").resolve("src.zip");
 
-    public static void main(String[] args) {
-        // find all classes in classpath
-        List<Class> allClasses = ClasspathInspector.getAllKnownClasses();
-        System.out.printf("There are %s classes available in the classpath\n", allClasses.size());
-
-        // find all classes that implement/subclass an interface/superclass
-        List<Class> serializableClasses = ClasspathInspector.getMatchingClasses(Serializable.class);
-        for (Class clazz : serializableClasses) {
-            System.out.printf("%s is Serializable\n", clazz);
+        if (Files.exists(jdk8Zip)) {
+            return jdk8Zip;
+        } else if (Files.exists(modernZip)) {
+            return modernZip;
         }
+        throw new RuntimeException("Could not find Java source zip file");
     }
 }

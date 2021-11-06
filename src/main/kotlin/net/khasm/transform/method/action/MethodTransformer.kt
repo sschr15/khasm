@@ -18,7 +18,7 @@ sealed class MethodTransformer(val type: MethodActionType) {
 class RawMethodTransformer(typeRaw: MethodActionType, val action: MethodAssembly.(AbstractInsnNode) -> Unit): MethodTransformer(typeRaw)
 
 class SmartMethodTransformer(typeSmart: MethodActionType, val action: Function<*>, vararg params: TypeLike) : MethodTransformer(typeSmart) {
-    val params = params.map { coerceType(it).className }
+    val params = params.map { p -> coerceType(p).let { if ('.' in it.className) it.internalName else it.className }!! }
     val internalName = "\$khasm\$smartInject\$${Integer.toHexString(Random().nextInt())}"
 }
 

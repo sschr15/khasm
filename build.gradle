@@ -1,12 +1,12 @@
 plugins {
-    id 'fabric-loom' version '0.6-SNAPSHOT'
+    id 'fabric-loom' version '0.10-SNAPSHOT'
     id 'maven-publish'
-    id 'org.jetbrains.kotlin.jvm' version '1.4.21'
-    id "org.jetbrains.dokka" version "1.4.20"
+    id 'org.jetbrains.kotlin.jvm' version '1.5.21'
+    id "org.jetbrains.dokka" version "1.5.0"
 }
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+sourceCompatibility = JavaVersion.VERSION_16
+targetCompatibility = JavaVersion.VERSION_16
 
 archivesBaseName = project.archives_base_name
 version = project.mod_version
@@ -17,7 +17,7 @@ repositories {
         url 'https://maven.hackery.site/'
     }
     maven {
-        url 'https://dl.bintray.com/user11681/maven'
+        url 'https://auoeke.jfrog.io/artifactory/maven'
     }
     maven {
         url 'https://jitpack.io'
@@ -25,7 +25,6 @@ repositories {
     maven {
         url 'https://maven.concern.i.ng'
     }
-    jcenter()
 }
 
 dependencies {
@@ -34,10 +33,8 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-    include(modImplementation("com.github.P03W:GrossFabricHacks:master-SNAPSHOT"))
-    include(modImplementation("user11681:dynamicentry:0.0.2"))
-    include(implementation("user11681:reflect:0.2.0"))
-    include(implementation("net.gudenau.lib:unsafe:1.2.14"))
+    include(implementation("user11681:reflect:1.12.0"))
+    include(implementation("net.gudenau.lib:unsafe:1.4.3"))
     include(implementation("sschr15.tools:better-paths:1.1.0"))
 
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
@@ -50,10 +47,12 @@ processResources {
     from(sourceSets.main.resources.srcDirs) {
         include "fabric.mod.json"
         expand "version": project.version
+        duplicatesStrategy DuplicatesStrategy.EXCLUDE
     }
 
     from(sourceSets.main.resources.srcDirs) {
         exclude "fabric.mod.json"
+        duplicatesStrategy DuplicatesStrategy.EXCLUDE
     }
 }
 
@@ -94,12 +93,19 @@ publishing {
     repositories {
         // uncomment to publish to the local maven
         // mavenLocal()
+        maven {
+            url 'https://maven.concern.i.ng/releases'
+            credentials {
+                username System.getenv("MAVEN_USER")
+                password System.getenv("MAVEN_PASS")
+            }
+        }
     }
 }
 
 compileKotlin {
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "16"
         freeCompilerArgs = ["-Xopt-in=kotlin.RequiresOptIn"]
     }
 }

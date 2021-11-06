@@ -15,7 +15,7 @@ import org.objectweb.asm.tree.ClassNode
  * and changing inheritance and annotations.
  */
 @Suppress("unused", "MemberVisibilityCanBePrivate")
-class KhasmClassTransformerBuilder(method: KhasmClassTransformerBuilder.() -> Unit) {
+class KhasmClassTransformerBuilder(private val modid: String, method: KhasmClassTransformerBuilder.() -> Unit) {
     private val working = KhasmClassTransformer()
 
     init {
@@ -75,7 +75,7 @@ class KhasmClassTransformerBuilder(method: KhasmClassTransformerBuilder.() -> Un
     }
 
     fun ClassAssembly.transformMethod(transformer: KhasmMethodTransformerBuilder.() -> Unit) {
-        KhasmMethodTransformerDispatcher.registerMethodTransformer {
+        KhasmMethodTransformerDispatcher.registerMethodTransformer(modid) {
             classTarget(working.transformClassPredicate)
             transformer()
         }

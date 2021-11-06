@@ -1,6 +1,11 @@
 @file:JvmName("KhasmRuntimeAPI")
+@file:Suppress("unused")
 
 package net.khasm.transform
+
+import net.khasm.util.all
+import net.khasm.util.logger
+import user11681.reflect.Classes
 
 // These methods exist for the purpose of making bytecode easier.
 // These automatically turn all primitives into their object representations.
@@ -41,8 +46,16 @@ fun toObject(obj: Any?): Any? {
 }
 
 fun <T> invoke(function: Function<T>, vararg args: Any?): T? {
-    val method = function.javaClass.declaredMethods[0]
+    val method = function.javaClass.declaredMethods
+        .firstOrNull { it.parameterTypes.mapIndexed { i: Int, clazz: Class<*>? -> clazz?.isInstance(args[i]) == true }.all() }
+        ?: throw IllegalArgumentException("AAAAAAAAAAAA")
     method.isAccessible = true
     @Suppress("UNCHECKED_CAST")
     return method(function, *args) as? T
 }
+
+fun comment(comment: String) {
+    logger.debug("Class comment: $comment")
+}
+
+fun cast(obj: Any?, `class`: Class<*>): Any? = Classes.reinterpret(obj, `class`)

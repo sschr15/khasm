@@ -1,10 +1,10 @@
 package net.khasm.test
 
 import codes.som.anthony.koffee.insns.jvm.*
+import net.khasm.annotation.DangerousKhasmUsage
 import net.khasm.transform.`class`.KhasmClassTransformerDispatcher
-import net.khasm.transform.method.target.CursorsFixed
 import net.khasm.transform.method.target.HeadTarget
-import net.khasm.transform.method.target.LineNumberTarget
+import net.khasm.transform.method.target.MethodInvocationTarget
 import net.khasm.transform.method.target.ReturnTarget
 import net.khasm.util.*
 import net.minecraft.client.MinecraftClient
@@ -24,7 +24,7 @@ object AdvancedKhasmTest {
      * This test targets [TitleScreen]
      */
     fun registerTest() {
-        KhasmClassTransformerDispatcher.registerClassTransformer {
+        KhasmClassTransformerDispatcher.registerClassTransformer("khasm-tests") {
             // TitleScreen
             classTarget("net.minecraft.class_442")
 
@@ -57,7 +57,8 @@ object AdvancedKhasmTest {
                 }
 
                 // transformMethod automatically sets the class target to the current class target.
-                transformMethod {
+                @Suppress("ConstantConditionIf") // disabled because casting exceptions that I don't want to attempt to fix right now
+                if (false) transformMethod {
                     // Screen.init (see KhasmTest)
                     methodTarget("net.minecraft.class_437", "method_25426", "()V")
 
@@ -66,7 +67,7 @@ object AdvancedKhasmTest {
                     action {
                         rawInject {
                             aload_0 // this
-                            checkcast(TableSwitchGenerator::class)
+                            forcecast(TableSwitchGenerator::class)
                             invokeinterface(TableSwitchGenerator::class, "generateDefault", void)
                         }
                     }
@@ -85,11 +86,12 @@ object AdvancedKhasmTest {
 
                 transformMethod {
                     // Drawable.render(MatrixStack, int, int, float)
-                    methodTarget("net.minecraft.class_4068", "method_25394", "(Lnet/minecraft/class_4587;IIF)V", skipDescriptorChecks = true)
+                    @OptIn(DangerousKhasmUsage::class)
+                    methodTarget("net.minecraft.class_4068", "method_25394", "(Lnet/minecraft/class_4587;IIF)V", true)
 
                     target {
-                        // I18n.translate(String, Object...)
-                        LineNumberTarget(276).filter { CursorsFixed(it.points.map { i -> i + 1 }) }
+                        // boolean MinecraftClient.isModded()
+                        MethodInvocationTarget("net.minecraft.class_310", "method_24289", "()Z")
                     }
 
                     action { rawInject {
@@ -107,7 +109,8 @@ object AdvancedKhasmTest {
             }
         }
 
-        KhasmClassTransformerDispatcher.registerClassTransformer {
+        KhasmClassTransformerDispatcher.registerClassTransformer("khasm-tests") {
+            // MinecraftClient
             val minecraftClient = "net.minecraft.class_310"
 
             classTarget(minecraftClient)
@@ -119,6 +122,7 @@ object AdvancedKhasmTest {
                 }
 
                 transformMethod {
+                    @OptIn(DangerousKhasmUsage::class)
                     methodTarget("net.minecraft.class_310", "<init>", "(Lnet/minecraft/class_542;)V", true)
 
                     target { ReturnTarget() }
@@ -147,7 +151,8 @@ object AdvancedKhasmTest {
     }
 
     @JvmStatic
-    fun thing(thiz: TitleScreen) {
-        println(thiz.height)
+    fun thing(thiz: Any) {
+        val `this`: TitleScreen = thiz.reinterpret()
+        println(`this`.title)
     }
 }

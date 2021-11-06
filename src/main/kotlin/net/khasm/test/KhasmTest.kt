@@ -9,7 +9,7 @@ object KhasmTest {
      */
     @Suppress("RedundantLambdaArrow")
     fun registerTest() {
-        KhasmMethodTransformerDispatcher.registerMethodTransformer {
+        KhasmMethodTransformerDispatcher.registerMethodTransformer("khasm-tests") {
             // TitleScreen
             classTarget("net.minecraft.class_442")
 

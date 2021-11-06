@@ -16,12 +16,6 @@
   "icon": "assets/khasm/icon.png",
   "environment": "*",
   "entrypoints": {
-    "gfh:prePreLaunch": [
-      {
-        "adapter": "kotlin",
-        "value": "net.khasm.init.KhasmPrePreLaunch"
-      }
-    ],
     "main": [
       {
         "adapter": "kotlin",
@@ -32,10 +26,12 @@
   "depends": {
     "fabricloader": ">=0.10.8",
     "minecraft": "*",
-    "grossfabrichacks": ">=6.1",
-    "fabric-language-kotlin": ">=1.4.0"
+    "fabric-language-kotlin": ">=1.5.0"
   },
   "custom": {
     "modmenu:api": true
+  },
+  "languageAdapters": {
+    "fakekhasmlaunchlangadapter": "net.khasm.init.KhasmRelauncher"
   }
 }

@@ -4,15 +4,17 @@ import net.khasm.transform.method.action.SmartMethodTransformer
 import org.objectweb.asm.tree.ClassNode
 
 object KhasmMethodTransformerDispatcher {
-    private val transformers : MutableList<KhasmMethodTransformer> = mutableListOf()
-    private val transformersToRemove: MutableList<KhasmMethodTransformer> = mutableListOf()
+    @Volatile
+    private var transformers : MutableList<KhasmMethodTransformer> = mutableListOf()
+    @Volatile
+    private var transformersToRemove: MutableList<KhasmMethodTransformer> = mutableListOf()
 
-    fun registerMethodTransformer(methodTransformer: KhasmMethodTransformer) {
+    private fun registerMethodTransformer(methodTransformer: KhasmMethodTransformer) {
         transformers.add(methodTransformer)
     }
 
-    fun registerMethodTransformer(transformer: KhasmMethodTransformerBuilder.() -> Unit) {
-        registerMethodTransformer(KhasmMethodTransformerBuilder(transformer).build())
+    fun registerMethodTransformer(modid: String, transformer: KhasmMethodTransformerBuilder.() -> Unit) {
+        registerMethodTransformer(KhasmMethodTransformerBuilder(transformer, modid).build())
     }
 
     fun tryTransform(node: ClassNode) {
@@ -25,5 +27,5 @@ object KhasmMethodTransformerDispatcher {
         transformersToRemove.clear()
     }
 
-    internal val appliedFunctions = mutableMapOf<String, MutableList<SmartMethodTransformer>>()
+    val appliedFunctions = mutableMapOf<String, MutableList<SmartMethodTransformer>>()
 }

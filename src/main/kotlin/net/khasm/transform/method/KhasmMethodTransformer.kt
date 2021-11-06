@@ -18,7 +18,7 @@ import org.objectweb.asm.tree.*
 import java.lang.Integer.max
 import kotlin.math.min
 
-class KhasmMethodTransformer {
+class KhasmMethodTransformer(val modid: String) {
     // Predicates
     private var transformClassPredicate: (ClassNode) -> Boolean = { false }
     private var transformMethodPredicate: (MethodNode) -> Boolean = { false }
@@ -64,6 +64,7 @@ class KhasmMethodTransformer {
         if (shouldTransformClass(classNode)) {
             for (method in classNode.methods) {
                 if (shouldTransformMethod(method)) {
+                    method!!
                     logger.info("Transforming method " + method.name + method.desc)
                     val cursors = targetPredicate.getCursors(method)
 
@@ -91,12 +92,20 @@ class KhasmMethodTransformer {
 
                             // We use a try/catch block just in case some weird list access stuff would occur
                             when (methodTransformer) {
-                                is RawMethodTransformer -> methodTransformer.action(this, try {
+                                is RawMethodTransformer -> {
+                                    ldc("Added by id '$modid'")
+                                    invokestatic("net/khasm/transform/KhasmRuntimeAPI", "comment", void, String::class)
+                                    methodTransformer.action(this, try {
                                         sections[nextIdx][0]
                                     } catch (e: IndexOutOfBoundsException) {
                                         UnknownInsnNode()
                                     })
+                                    ldc("End addition by id '$modid'")
+                                    invokestatic("net/khasm/transform/KhasmRuntimeAPI", "comment", void, String::class)
+                                }
                                 is SmartMethodTransformer -> {
+                                    ldc("Smart inject method added by id '$modid'")
+                                    invokestatic("net/khasm/transform/KhasmRuntimeAPI", "comment", void, String::class)
                                     // Create the method reference so we can call it
                                     var field = FieldNode(0, null, null, null, null)
                                     classNode.koffee {
@@ -123,7 +132,7 @@ class KhasmMethodTransformer {
                                         dup
                                         push_int(i)
 
-                                        // This is a fiendishly complicated way to turn primiteves into an object
+                                        // This is a fiendishly complicated way to turn primitives into an object
                                         val type = when (args[i]) {
                                             "int" -> int
                                             "long" -> long
@@ -153,7 +162,7 @@ class KhasmMethodTransformer {
                                     // if overwriting, return the result as intended
                                     if (methodTransformer.isOverwrite) {
                                         when (returnType.className) {
-                                            in listOf("byte", "short", "int", "boolean", "char") -> ireturn
+                                            "byte", "short", "int", "boolean", "char" -> ireturn
                                             "long" -> lreturn
                                             "float" -> freturn
                                             "double" -> dreturn
