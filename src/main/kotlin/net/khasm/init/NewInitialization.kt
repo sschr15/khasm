@@ -2,6 +2,8 @@
 
 package net.khasm.init
 
+import net.fabricmc.loader.api.FabricLoader
+import net.khasm.KhasmLoad
 import net.khasm.exception.AlreadyTransformingException
 import net.khasm.instrumentation.retransformClassNode
 import net.khasm.transform.KhasmClassWriter
@@ -99,9 +101,9 @@ fun onInstrumentationLoaded() {
 
     logger.info("Finished redefining classes")
 
-    // force Drawable to load under KnotClassLoader
-    Class.forName("net.minecraft.client.gui.Drawable", true, currentClassLoader)
-    Class.forName("net.minecraft.client.gui.Selectable", true, currentClassLoader)
+    FabricLoader.getInstance()
+        .getEntrypoints("khasm:code-setup", KhasmLoad::class.java)
+        .forEach(KhasmLoad::loadTransformers)
 }
 
 private val currentlyTransforming: MutableList<String> = mutableListOf()

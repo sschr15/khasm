@@ -105,7 +105,7 @@ abstract class TransformData {
 
         // MODIFIED BELOW
         // Adding net.khasm.* to the classes that can't be transformed in hopes of fixing the issue of wrong classloader
-        if (!transformInitialized || !canTransformClass(name) || name.startsWith("net.khasm")) {
+        if (name.startsWith("net.khasm")) {
         // MODIFIED ABOVE
             try {
                 return getRawClassByteArray(name, allowFromParent);
@@ -114,7 +114,14 @@ abstract class TransformData {
             }
         }
 
-        byte[] input = provider.getEntrypointTransformer().transform(name);
+        // MODIFIED BELOW
+        byte[] input = new byte[0];
+        try {
+            input = transformInitialized && canTransformClass(name) ? provider.getEntrypointTransformer().transform(name) : getRawClassByteArray(name, allowFromParent);
+        } catch (IOException e) {
+            throw KhasmUtilitiesKt.rethrow(e);
+        }
+        // MODIFIED ABOVE
 
         if (input == null) {
             try {
@@ -127,7 +134,8 @@ abstract class TransformData {
         if (input != null) {
 
             // MODIFIED BELOW
-            input = FabricTransformer.transform(isDevelopment, envType, name, input);
+            if (transformInitialized && canTransformClass(name))
+                input = FabricTransformer.transform(isDevelopment, envType, name, input);
             // reflection to keep the method in KnotClassLoader (or KnotCompatibilityClassLoader)
             try {
                 Method method = Class.forName("net.khasm.init.NewInitializationKt", true, (ClassLoader) itf).getMethod("khasmTransform", byte[].class, String.class);

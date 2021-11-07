@@ -18,6 +18,17 @@ dependencies {
 
 Get the latest version (instead of `VERSION`) from the [properties file](gradle.properties)
 
+Initialize using the `KhasmLoad` interface and the `khasm:code-setup` entrypoint in your `fabric.mod.json`:
+```json5
+    // ...
+    "entrypoints": {
+        "khasm:code-setup": [
+            "package.with.setup.Class"
+        ]
+    }
+    // ...
+```
+
 ## Example
 
 [This](src/main/kotlin/net/khasm/test/KhasmTest.kt) is the fabric-example-mod
