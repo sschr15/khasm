@@ -1,20 +1,20 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package net.khasm.util
 
-import com.google.gson.GsonBuilder
+import com.google.gson.*
 import net.fabricmc.loader.api.FabricLoader
-import net.khasm.transform.ClassLoadingTree
 import org.apache.commons.codec.digest.DigestUtils.sha512
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.LabelNode
+import sschr15.tools.betterpaths.delete
 import sschr15.tools.betterpaths.div
 import user11681.reflect.Classes
-import kotlin.io.path.exists
-import kotlin.io.path.readBytes
-import kotlin.io.path.readText
-import kotlin.io.path.writeBytes
+import java.lang.reflect.Type
+import kotlin.io.path.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
@@ -24,7 +24,10 @@ internal typealias Functional = FunctionalInterface
 
 internal val logger: Logger = LogManager.getLogger("khasm")
 
-internal val debugFolder = FabricLoader.getInstance().gameDir.resolve("khasm")
+internal val debugFolder = FabricLoader.getInstance().gameDir.resolve("khasm").also {
+    if (it.exists() && !it.isDirectory()) it.delete() // delete if it's not a directory
+    if (!it.exists()) it.createDirectory()
+}
 
 internal val IntRange.Companion.ANY: IntRange
     get() = Int.MIN_VALUE..Int.MAX_VALUE
@@ -117,41 +120,45 @@ fun <V : Any> lateInitVal() = object : ReadWriteProperty<Any?, V> {
 inline val currentClassLoader: ClassLoader get() = Thread.currentThread().contextClassLoader
 
 internal val gson = GsonBuilder()
-    .registerTypeAdapter(ClassLoadingTree::class.java, ClassLoadingTree) // companion objects go brr
+    .registerTypeAdapter(List::class.java, object : JsonSerializer<List<String>>, JsonDeserializer<List<String>> {
+        override fun serialize(src: List<String>, typeOfSrc: Type, context: JsonSerializationContext) =
+            JsonArray().apply { src.forEach { add(it) } }
+        override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext) =
+            json.asJsonArray.map { it.asString }
+    })
     .create()
 
-val classInheritanceTree: ClassLoadingTree by lazy {
+val initializerClassNames: List<String> by lazy {
     val classLoader = object {}::class.java.classLoader
-    logger.info("Getting class inheritance tree (using classloader $classLoader)")
+    logger.info("Getting initializers (using classloader $classLoader)")
     // get classpath hash
     val classpath = System.getProperty("java.class.path")
     val classpathHash = sha512(classpath)
     val hashFile = debugFolder / "classpath.hash"
+    val initializersFile = debugFolder / "initializers.json"
 
     // check if hash is different
-    if (hashFile.exists()) {
+    if (hashFile.exists() && initializersFile.exists()) {
         val oldHash = hashFile.readBytes()
         if (classpathHash.contentEquals(oldHash)) {
-            // hashes are the same, use inheritance tree that's already there
-            val inheritanceTreeFile = debugFolder / "inheritance.json"
-            return@lazy gson.fromJson(inheritanceTreeFile.readText(), ClassLoadingTree::class.java)
+            // hashes are the same, use initializers file that's already there
+            return@lazy gson.fromJson(initializersFile.readText(), List::class.java) as List<String>
         }
     } else {
         // hash file doesn't exist, create it
         hashFile.writeBytes(classpathHash)
     }
-    // hashes are different or file doesn't exist, we must create a new inheritance tree in a new process
-    logger.warn("Creating new inheritance tree. This may take a while if you have a lot of mods / libraries")
+    // hashes are different or file doesn't exist, we must create a new initializers file in a new process
+    logger.warn("Creating new initializers file. This may take a while if you have a lot of mods / libraries")
 
     val javaExecutable = "${System.getProperty("java.home")}/bin/java"
-    val inheritanceTreeFile = debugFolder / "inheritance.json"
-    val fullCommand = "$javaExecutable -cp $classpath net.khasm.init.KhasmInheritanceBuilder $inheritanceTreeFile"
+    val fullCommand = "$javaExecutable -cp $classpath net.khasm.init.KhasmInitializerFinder $initializersFile"
     val process = ProcessBuilder(fullCommand.split(" "))
         .inheritIO()
         .start()
     // wait for process to finish building the inheritance tree
     process.waitFor()
 
-    logger.info("Inheritance tree created")
-    return@lazy gson.fromJson(inheritanceTreeFile.readText(), ClassLoadingTree::class.java)
+    logger.info("Initializer file created")
+    return@lazy gson.fromJson(initializersFile.readText(), List::class.java) as List<String>
 }

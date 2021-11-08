@@ -1,6 +1,7 @@
 package net.khasm.test
 
 import codes.som.anthony.koffee.insns.jvm.*
+import net.khasm.KhasmInitializer
 import net.khasm.annotation.DangerousKhasmUsage
 import net.khasm.transform.`class`.KhasmClassTransformerDispatcher
 import net.khasm.transform.method.target.HeadTarget
@@ -18,7 +19,7 @@ import java.io.PrintStream
 import java.lang.annotation.Documented
 
 @Suppress("RemoveRedundantQualifierName", "MemberVisibilityCanBePrivate")
-object AdvancedKhasmTest {
+class AdvancedKhasmTest : KhasmInitializer() {
     /**
      * A more advanced test to use more than the example mixin's reach.
      * This test targets [TitleScreen]
@@ -80,7 +81,7 @@ object AdvancedKhasmTest {
                     target { HeadTarget() }
 
                     action {
-                        smartInject(mapClass("net.minecraft.class_442"), action = AdvancedKhasmTest::thing)
+                        smartInject(mapClass("net.minecraft.class_442"), action = ::thing)
                     }
                 }
 
@@ -128,9 +129,7 @@ object AdvancedKhasmTest {
                     target { ReturnTarget() }
 
                     action {
-                        smartInject {
-                            AdvancedKhasmTest.overrideMinecraftClientLogger()
-                        }
+                        smartInject(action = ::overrideMinecraftClientLogger)
                     }
                 }
             }
@@ -150,9 +149,12 @@ object AdvancedKhasmTest {
         mcLogger!!.info("The window title is ${mcGetWindowTitle()}")
     }
 
-    @JvmStatic
-    fun thing(thiz: Any) {
-        val `this`: TitleScreen = thiz.reinterpret()
-        println(`this`.title)
+    override fun init() {
+        registerTest()
     }
+}
+
+fun thing(thiz: Any) {
+    val `this`: TitleScreen = thiz.reinterpret()
+    println(`this`.title)
 }

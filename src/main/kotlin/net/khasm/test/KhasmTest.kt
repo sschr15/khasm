@@ -1,9 +1,10 @@
 package net.khasm.test
 
+import net.khasm.KhasmInitializer
 import net.khasm.transform.method.KhasmMethodTransformerDispatcher
 import net.khasm.transform.method.target.HeadTarget
 
-object KhasmTest {
+class KhasmTest : KhasmInitializer() {
     /**
      * This is functionally equivalent to the fabric-example-mod example mixin (with a slight text change)
      */
@@ -26,5 +27,10 @@ object KhasmTest {
                 }
             }
         }
+    }
+
+    // new initializer
+    override fun init() {
+        registerTest()
     }
 }

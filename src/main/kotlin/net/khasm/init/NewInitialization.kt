@@ -1,17 +1,20 @@
-@file:Suppress("unused", "UNUSED_EXPRESSION", "LocalVariableName")
+@file:Suppress("unused", "UNUSED_EXPRESSION", "LocalVariableName", "UNCHECKED_CAST", "DEPRECATION")
 
 package net.khasm.init
 
+import codes.som.anthony.koffee.modifiers.abstract
+import codes.som.anthony.koffee.modifiers.enum
+import codes.som.anthony.koffee.modifiers.private
 import net.fabricmc.loader.api.FabricLoader
+import net.fabricmc.loader.api.LanguageAdapter
+import net.khasm.KhasmInitializer
 import net.khasm.KhasmLoad
 import net.khasm.exception.AlreadyTransformingException
 import net.khasm.instrumentation.retransformClassNode
 import net.khasm.transform.KhasmClassWriter
 import net.khasm.transform.`class`.KhasmClassTransformerDispatcher
 import net.khasm.transform.method.KhasmMethodTransformerDispatcher
-import net.khasm.util.currentClassLoader
-import net.khasm.util.debugFolder
-import net.khasm.util.logger
+import net.khasm.util.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.FieldInsnNode
@@ -22,14 +25,10 @@ import kotlin.io.path.exists
 import kotlin.io.path.writeBytes
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
+import net.fabricmc.loader.ModContainer as LoaderPackageModContainer
 import org.objectweb.asm.ClassWriter as AsmClassWriter
 
 val dummyVal = if (object {}::class.java.classLoader.name == "app") error("AppClassLoader loaded NewInitializationKt!") else null
-
-interface DelegateDuck {
-    @Throws(ClassNotFoundException::class)
-    fun tryLoadClass(name: String, allowFromParent: Boolean): Class<*>?
-}
 
 object Dummy
 
@@ -39,7 +38,7 @@ fun onInstrumentationLoaded() {
     val knotPkg = "net/fabricmc/loader/impl/launch/knot"
 
     val transformDataClassNode = ClassNode()
-    ClassReader(Dummy::class.java.getResourceAsStream("/$knotPkg/TransformData.class")).accept(transformDataClassNode, 0)
+    Dummy::class.java.getResourceAsStream("/$knotPkg/TransformData.class").use { ClassReader(it).accept(transformDataClassNode, 0) }
 
     retransformClassNode("$knotPkg/KnotClassDelegate") {
         logger.info("Transforming KnotClassDelegate")
@@ -101,9 +100,51 @@ fun onInstrumentationLoaded() {
 
     logger.info("Finished redefining classes")
 
-    FabricLoader.getInstance()
-        .getEntrypoints("khasm:code-setup", KhasmLoad::class.java)
-        .forEach(KhasmLoad::loadTransformers)
+    val initializers = initializerClassNames
+        .map { it.replace('/', '.') }
+        .map { Class.forName(it, true, currentClassLoader) as Class<out KhasmInitializer> }
+        .filter { it.modifiers.asModifiers().containsNone(abstract + private + enum) }
+        .associate { it.newInstance() to it.getDeclaredMethod("init") }
+
+    initializers.forEach { (initializer, init) ->
+        try {
+            init(initializer)
+        } catch (e: Throwable) {
+            logger.error("Error running initializer ${initializer::class.simpleName}", e)
+        }
+    }
+
+    // some mods may not be using the new initializers, so we need to initialize them separately
+    loadLegacyInitializers()
+
+    logger.info("Finished running initializers")
+}
+
+// this might not work but too bad. switch to using the new initializers
+internal fun loadLegacyInitializers() {
+    val mods = FabricLoader.getInstance().allMods
+    val initializers = mutableListOf<KhasmLoad>()
+    // we have to use net.fabricmc.loader.ModContainer instead of net.fabricmc.loader.api.ModContainer in order to get entrypoints
+    val entrypoints = mods
+        .map { it as LoaderPackageModContainer }
+        .associateWith { it.info.getEntrypoints("khasm:code-setup") }
+    for ((mod, entrypointList) in entrypoints) {
+        for (entrypoint in entrypointList) {
+            val className = entrypoint.value
+            val languageAdapter: String? = entrypoint.adapter
+            val languageAdapterInstance = if (!languageAdapter.isNullOrBlank()) {
+                val languageAdapterClass = Class.forName(languageAdapter) as Class<out LanguageAdapter>
+                languageAdapterClass.getDeclaredConstructor().newInstance()
+            } else LanguageAdapter.getDefault()
+            val obj = languageAdapterInstance.create(mod, className, KhasmLoad::class.java)
+            initializers.add(obj)
+        }
+    }
+
+    initializers.forEach {
+        logger.debug("Initializing ${it::class.simpleName}")
+        it.loadTransformers()
+    }
 }
 
 private val currentlyTransforming: MutableList<String> = mutableListOf()
@@ -120,18 +161,24 @@ fun khasmTransform(bytes: ByteArray?, s: String?): ByteArray? {
 
         val node = ClassNode()
         ClassReader(bytes).accept(node, 0)
+        val untransformed = KhasmClassWriter(0, currentClassLoader).also { node.accept(it) }.toByteArray()
         // No recursion, maybe security as well? idk
         KhasmClassTransformerDispatcher.tryTransform(node)
         KhasmMethodTransformerDispatcher.tryTransform(node)
         currentlyTransforming.remove(name)
-        KhasmClassWriter(AsmClassWriter.COMPUTE_FRAMES, currentClassLoader).also { node.accept(it) }.toByteArray()
-    } else bytes).also {
-        if (debugFolder.exists() && !it.contentEquals(bytes.newFrames())) {
-            val exportPath = debugFolder / "$name.class"
-            exportPath.parent.createDirectories()
-            exportPath.writeBytes(it)
+        val transformed = KhasmClassWriter(0, currentClassLoader).also { node.accept(it) }.toByteArray()
+
+        // if no changes were made, return the original bytes (hopefully circumnavigates ClassCircularityError)
+        if (untransformed.contentEquals(transformed)) untransformed
+        else KhasmClassWriter(AsmClassWriter.COMPUTE_FRAMES, currentClassLoader).also { node.accept(it) }.toByteArray().also {
+            if (debugFolder.exists()) {
+                // export if modified by khasm
+                val exportPath = debugFolder / "$name.class"
+                exportPath.parent.createDirectories()
+                exportPath.writeBytes(it)
+            }
         }
-    }
+    } else bytes)
 }
 
 fun ByteArray.newFrames(): ByteArray =

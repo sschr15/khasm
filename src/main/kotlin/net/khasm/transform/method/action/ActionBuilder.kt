@@ -30,6 +30,7 @@ class ActionBuilder(method: ActionBuilder.() -> Unit) : TypesAccess {
         methodTransformer = RawMethodTransformer(MethodActionType.RAW_OVERWRITE, action)
     }
 
+    //TODO get local variables working again
     /**
      * Allows you to inject the method with ASM that calls the provided lambda/function specified by targets
      */

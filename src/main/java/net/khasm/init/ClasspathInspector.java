@@ -70,13 +70,13 @@ public class ClasspathInspector {
 
     private static void getClassesFromDirectory(Path path) throws Throwable {
         // get jar files from top-level directory
-        List<Path> jarFiles = listFiles(path, entry -> entry.endsWith(".jar"), false);
+        List<Path> jarFiles = listFiles(path, entry -> entry.getFileName().toString().endsWith(".jar"), false);
         for (Path file : jarFiles) {
             getClassesFromJarFile(file);
         }
 
         // get all class-files
-        List<Path> classFiles = listFiles(path, entry -> entry.endsWith(".class"), true);
+        List<Path> classFiles = listFiles(path, entry -> entry.getFileName().toString().endsWith(".class"), true);
         for (Path classfile : classFiles) {
             ClassNode classNode = new ClassNode();
             byte[] classBytes = Files.readAllBytes(classfile);
@@ -89,7 +89,7 @@ public class ClasspathInspector {
     private static List<Path> listFiles(Path directory, DirectoryStream.Filter<Path> filter, boolean recurse) throws IOException {
         List<Path> files = new ArrayList<>();
         // Go over entries
-        for (Path entry : Files.newDirectoryStream(directory, filter)) {
+        for (Path entry : Files.walk(directory).toList()) {
             // If there is no filter or the filter accepts the
             // file / directory, add it to the list
             if (filter.accept(entry)) {
@@ -98,7 +98,7 @@ public class ClasspathInspector {
 
             // If the file is a directory and the recurse flag
             // is set, recurse into the directory
-            if (recurse && Files.isDirectory(entry)) {
+            if (recurse && Files.isDirectory(entry) && entry != directory) {
                 files.addAll(listFiles(entry, filter, true));
             }
         }

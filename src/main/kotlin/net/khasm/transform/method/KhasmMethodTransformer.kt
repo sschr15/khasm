@@ -161,6 +161,14 @@ class KhasmMethodTransformer(val modid: String) {
 
                                     // if overwriting, return the result as intended
                                     if (methodTransformer.isOverwrite) {
+                                        val mustConvert = when (returnType.descriptor) {
+                                            "I", "J", "B", "C", "S", "F", "D", "Z" -> true
+                                            else -> false
+                                        }
+                                        if (mustConvert)
+                                            // it can't just be called `toPrimitive` because Java would say no. We say `toTypeDescriptor`
+                                            invokestatic("net/khasm/transform/KhasmRuntimeAPI", "to${returnType.descriptor}", returnType, Any::class)
+
                                         when (returnType.className) {
                                             "byte", "short", "int", "boolean", "char" -> ireturn
                                             "long" -> lreturn
@@ -169,6 +177,10 @@ class KhasmMethodTransformer(val modid: String) {
                                             "void" -> `return`
                                             else -> areturn
                                         }
+                                    } else {
+                                        // if it's not overwriting, we need to get rid of the return value
+                                        // (we don't have to pop2 because a double or a long is returned as an object)
+                                        pop
                                     }
                                 }
                             }
