@@ -49,20 +49,17 @@ class KhasmClassTransformerBuilder(private val modid: String, method: KhasmClass
 
     /**
      * Set the superclass of this class.
-     *
-     * This is marked as dangerous as this will overwrite
-     * a parent if it's set.
      */
-    @DangerousKhasmUsage
+    @DangerousKhasmUsage("""
+        This will change the superclass of the class.
+        This is not recommended unless you know what you're doing.
+    """)
     fun ClassAssembly.extend(type: TypeLike) {
         node.superName = coerceType(type).internalName
     }
 
     /**
      * Cause this class to implement another class.
-     *
-     * This is not marked as dangerous as a given class
-     * can have many implemented interfaces.
      */
     fun ClassAssembly.implement(type: TypeLike) {
         node.interfaces.add(coerceType(type).internalName)

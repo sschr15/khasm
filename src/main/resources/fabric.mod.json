@@ -17,16 +17,12 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      {
-        "adapter": "kotlin",
-        "value": "net.khasm.init.KhasmInit"
-      }
+      "net.khasm.init.KhasmInit"
     ]
   },
   "depends": {
     "fabricloader": ">=0.10.8",
-    "minecraft": "*",
-    "fabric-language-kotlin": ">=1.5.0"
+    "minecraft": "*"
   },
   "custom": {
     "modmenu:api": true

@@ -20,6 +20,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.FieldInsnNode
 import org.objectweb.asm.tree.MethodInsnNode
 import sschr15.tools.betterpaths.div
+import java.lang.reflect.Field
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.writeBytes
@@ -152,7 +153,7 @@ private val currentlyTransforming: MutableList<String> = mutableListOf()
 fun khasmTransform(bytes: ByteArray?, s: String?): ByteArray? {
     if (bytes == null || s == null) return null
     val name = s.replace('.', '/')
-    return (if (!name.startsWith("net/khasm")) {
+    return if (!name.startsWith("net/khasm")) {
         if (currentlyTransforming.contains(name)) {
             throw AlreadyTransformingException(name)
         } else {
@@ -161,15 +162,13 @@ fun khasmTransform(bytes: ByteArray?, s: String?): ByteArray? {
 
         val node = ClassNode()
         ClassReader(bytes).accept(node, 0)
-        val untransformed = KhasmClassWriter(0, currentClassLoader).also { node.accept(it) }.toByteArray()
-        // No recursion, maybe security as well? idk
-        KhasmClassTransformerDispatcher.tryTransform(node)
-        KhasmMethodTransformerDispatcher.tryTransform(node)
+        // check if the class gets transformed by seeing if any transformers run
+        var transformed = KhasmClassTransformerDispatcher.tryTransform(node)
+        transformed = KhasmMethodTransformerDispatcher.tryTransform(node) || transformed
         currentlyTransforming.remove(name)
-        val transformed = KhasmClassWriter(0, currentClassLoader).also { node.accept(it) }.toByteArray()
 
         // if no changes were made, return the original bytes (hopefully circumnavigates ClassCircularityError)
-        if (untransformed.contentEquals(transformed)) untransformed
+        if (!transformed) bytes
         else KhasmClassWriter(AsmClassWriter.COMPUTE_FRAMES, currentClassLoader).also { node.accept(it) }.toByteArray().also {
             if (debugFolder.exists()) {
                 // export if modified by khasm
@@ -178,7 +177,20 @@ fun khasmTransform(bytes: ByteArray?, s: String?): ByteArray? {
                 exportPath.writeBytes(it)
             }
         }
-    } else bytes)
+    } else bytes
+}
+
+// delegating here to keep things in KnotClassLoader rather than AppClassLoader
+fun setupSmartInjects(`class`: Class<*>, name: String) {
+    val slashedName = name.replace('.', '/')
+    val map = KhasmMethodTransformerDispatcher.appliedFunctions
+
+    map[slashedName]?.forEach { transformer ->
+        logger.debug("Setting up {} in {}", transformer.internalName, name)
+        val field: Field = `class`.getDeclaredField(transformer.internalName)
+        field.isAccessible = true
+        field[null] = transformer.action
+    }
 }
 
 fun ByteArray.newFrames(): ByteArray =

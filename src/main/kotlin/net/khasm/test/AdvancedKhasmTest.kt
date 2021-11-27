@@ -68,7 +68,7 @@ class AdvancedKhasmTest : KhasmInitializer() {
                     action {
                         rawInject {
                             aload_0 // this
-                            forcecast(TableSwitchGenerator::class)
+                            checkcast(TableSwitchGenerator::class)
                             invokeinterface(TableSwitchGenerator::class, "generateDefault", void)
                         }
                     }
@@ -136,22 +136,22 @@ class AdvancedKhasmTest : KhasmInitializer() {
         }
     }
 
-    fun overrideMinecraftClientLogger() {
-        val mcLoggerField = MinecraftClient::class.java.getDeclaredField(mapField("net.minecraft.class_310", "field_1762", "Lorg/apache/logging/log4j/Logger;"))
-        var mcLogger by FieldReflectDelegate<Logger>(mcLoggerField, null)
-
-        val mcGetWindowTitle by MethodReflectDelegate<String>(
-            MinecraftClient::class.java.getDeclaredMethod(mapMethod("net.minecraft.class_310", "method_24287", "()Ljava/lang/String;")),
-            MinecraftClient.getInstance()
-        )
-
-        mcLogger = LogManager.getLogger("Minecraft (khasm-was-here)")
-        mcLogger!!.info("The window title is ${mcGetWindowTitle()}")
-    }
-
     override fun init() {
         registerTest()
     }
+}
+
+fun overrideMinecraftClientLogger() {
+    val mcLoggerField = MinecraftClient::class.java.getDeclaredField(mapField("net.minecraft.class_310", "field_1762", "Lorg/apache/logging/log4j/Logger;"))
+    var mcLogger by FieldReflectDelegate<Logger>(mcLoggerField, null)
+
+    val mcGetWindowTitle by MethodReflectDelegate<String>(
+        MinecraftClient::class.java.getDeclaredMethod(mapMethod("net.minecraft.class_310", "method_24287", "()Ljava/lang/String;")),
+        MinecraftClient.getInstance()
+    )
+
+    mcLogger = LogManager.getLogger("Minecraft (khasm-was-here)")
+    mcLogger!!.info("The window title is ${mcGetWindowTitle()}")
 }
 
 fun thing(thiz: Any) {

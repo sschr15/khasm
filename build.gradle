@@ -1,7 +1,7 @@
 plugins {
     id 'fabric-loom' version '0.10-SNAPSHOT'
     id 'maven-publish'
-    id 'org.jetbrains.kotlin.jvm' version '1.5.21'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.0'
     id "org.jetbrains.dokka" version "1.5.0"
 }
 
@@ -37,7 +37,19 @@ dependencies {
     include(implementation("net.gudenau.lib:unsafe:1.4.3"))
     include(implementation("sschr15.tools:better-paths:1.1.0"))
 
-    modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
+//    modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
+    // fabric-language-kotlin uses an outdated version of kotlin so we JIJ kotlin ourselves
+    def kotlinLibs = [
+            "stdlib",
+            "stdlib-common",
+            "stdlib-jdk7",
+            "stdlib-jdk8",
+            "reflect",
+    ]
+    for (i in 0..<kotlinLibs.size()) {
+        include(implementation("org.jetbrains.kotlin:kotlin-${kotlinLibs[i]}:${project.kotlin_version}"))
+    }
+
     include api("codes.som.anthony:koffee:8.0.2")
 }
 

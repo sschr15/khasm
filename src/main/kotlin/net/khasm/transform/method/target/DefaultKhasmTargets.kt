@@ -20,12 +20,12 @@ class CustomTarget(private val lambda: MethodNode.() -> List<Int>) : AbstractKha
 }
 
 /**
- * Inject a certain distance into the method.
- *
- * Note: this can be dangerous as other transformers
- * may have already changed the method.
+ * Inject a certain number of instructions into the method.
  */
-@DangerousKhasmUsage
+@DangerousKhasmUsage("""
+    This may inject into the wrong spots if other transformers have
+    already done transformations.
+""")
 class RawTarget(private vararg val cursors: Int) : AbstractKhasmTarget() {
     override fun getPossibleCursors(range: IntRange, node: MethodNode): CursorsFixed {
         return CursorsFixed(cursors.asList().filter(range::contains))

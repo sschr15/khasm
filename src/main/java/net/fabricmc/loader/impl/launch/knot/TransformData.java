@@ -4,16 +4,12 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.impl.game.GameProvider;
 import net.fabricmc.loader.impl.transformer.FabricTransformer;
 import net.fabricmc.loader.impl.util.LoaderUtil;
-import net.khasm.transform.method.KhasmMethodTransformerDispatcher;
-import net.khasm.transform.method.action.SmartMethodTransformer;
 import net.khasm.util.KhasmUtilitiesKt;
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -74,22 +70,15 @@ abstract class TransformData {
         // MODIFIED BELOW
         // injecting here because classloaders cause KhasmMethodTransformerDispatcher to be loaded multiple times which causes all the problems
         Class<?> clazz = itf.defineClassFwd(name, input, 0, input.length, metadata.codeSource);
-        if (!name.contains("khasm")) {
-            // run khasm initialization for the class
-            // the check is in case KnotClassDelegate loads any khasm classes
-            String slashedName = name.replace('.', '/');
-            Map<String, List<SmartMethodTransformer>> map = KhasmMethodTransformerDispatcher.INSTANCE.getAppliedFunctions();
-            if (map.containsKey(slashedName)) {
-                for (SmartMethodTransformer transformer : map.get(slashedName)) {
-                    try {
-                        KhasmUtilitiesKt.getLogger().info("Setting up {} in {}", transformer.getInternalName(), name);
-                        Field field = clazz.getDeclaredField(transformer.getInternalName());
-                        field.setAccessible(true);
-                        field.set(null, transformer.getAction());
-                    } catch (Throwable t) {
-                        throw KhasmUtilitiesKt.rethrow(t);
-                    }
-                }
+        if (!name.contains("khasm") && Boolean.getBoolean("khasm.debug.setupAtClassLoad")) {
+            try {
+                // KnotClassDelegate has an `itf` field which is a KnotClassLoaderInterface, but it's only implemented by Knot's classloaders
+                // so we can safely cast it to ClassLoader and use it to load the class :pineapple: :tiny_potato:
+                Class<?> newInitializationClass = Class.forName("net.khasm.init.NewInitializationKt", true, (ClassLoader) itf);
+                Method setupSmartInjects = newInitializationClass.getDeclaredMethod("setupSmartInjects", Class.class, String.class);
+                setupSmartInjects.invoke(null, clazz, name);
+            } catch (Throwable t) {
+                throw KhasmUtilitiesKt.rethrow(t);
             }
         }
         return clazz;
@@ -104,7 +93,7 @@ abstract class TransformData {
         name = name.replace('/', '.');
 
         // MODIFIED BELOW
-        // Adding net.khasm.* to the classes that can't be transformed in hopes of fixing the issue of wrong classloader
+        // protecting khasm's classes from being transformed in case of circular classloading or other issues
         if (name.startsWith("net.khasm")) {
         // MODIFIED ABOVE
             try {
@@ -117,7 +106,10 @@ abstract class TransformData {
         // MODIFIED BELOW
         byte[] input = new byte[0];
         try {
-            input = transformInitialized && canTransformClass(name) ? provider.getEntrypointTransformer().transform(name) : getRawClassByteArray(name, allowFromParent);
+            // yes ternaries work yes i do this to allow *basically anything* to be transformed by khasm
+            input = transformInitialized && canTransformClass(name)
+                    ? provider.getEntrypointTransformer().transform(name)
+                    : getRawClassByteArray(name, allowFromParent);
         } catch (IOException e) {
             throw KhasmUtilitiesKt.rethrow(e);
         }

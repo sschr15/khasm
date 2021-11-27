@@ -65,7 +65,7 @@ class KhasmMethodTransformer(val modid: String) {
             for (method in classNode.methods) {
                 if (shouldTransformMethod(method)) {
                     method!!
-                    logger.info("Transforming method " + method.name + method.desc)
+                    logger.debug("Transforming method " + method.name + method.desc)
                     val cursors = targetPredicate.getCursors(method)
 
                     if (cursors is CursorRanges) {
@@ -193,7 +193,7 @@ class KhasmMethodTransformer(val modid: String) {
                     method.visitEnd()
                 }
             }
-            return oneTimeUse
+            return true
         }
         return false
     }

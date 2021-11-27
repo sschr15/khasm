@@ -17,14 +17,18 @@ object KhasmMethodTransformerDispatcher {
         registerMethodTransformer(KhasmMethodTransformerBuilder(transformer, modid).build())
     }
 
-    fun tryTransform(node: ClassNode) {
+    fun tryTransform(node: ClassNode): Boolean {
+        var transformed = false
         transformers.forEach {
             if (it.tryTransformClass(node)) {
                 transformersToRemove.add(it)
+                transformed = true
             }
         }
         transformers.removeAll(transformersToRemove)
         transformersToRemove.clear()
+
+        return transformed
     }
 
     val appliedFunctions = mutableMapOf<String, MutableList<SmartMethodTransformer>>()

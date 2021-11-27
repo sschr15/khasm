@@ -17,9 +17,7 @@ class KhasmTest : KhasmInitializer() {
             // Screen.init (Called on open or resize)
             methodTarget("net.minecraft.class_437", "method_25426", "()V")
 
-            target {
-                HeadTarget()
-            }
+            target { HeadTarget() }
 
             action {
                 smartInject {

@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package net.khasm.annotation
 
 /**
@@ -6,6 +8,7 @@ package net.khasm.annotation
  * Opt in with [`@DangerousKhasmUsage`][DangerousKhasmUsage]
  * or with a compile flag.
  */
+@Retention(AnnotationRetention.BINARY)
 @RequiresOptIn(
     level = RequiresOptIn.Level.ERROR,
     message = "Usage of this may result in issues with further transformers or improper usage, " +
@@ -19,4 +22,6 @@ package net.khasm.annotation
     AnnotationTarget.FIELD,
     AnnotationTarget.VALUE_PARAMETER
 )
-annotation class DangerousKhasmUsage
+annotation class DangerousKhasmUsage(
+    val reason: String
+)

@@ -40,12 +40,13 @@ class ActionBuilder(method: ActionBuilder.() -> Unit) : TypesAccess {
     }
 
     /**
-     * Allows you to overwrite the method with ASM that calls the provided lambda/function
-     *
-     * This technically replaces the method with a call that invokes the passed lambda, not the lambda code itself
-     * making this completely incompatible with further mixins or transformations
+     * Allows you to overwrite the method with ASM that calls the provided lambda/function.
      */
-    @DangerousKhasmUsage
+    @DangerousKhasmUsage("""
+        This is a very dangerous method to use.
+        It will completely replace the method with the code specified by the lambda/function.
+        This is not compatible with further transformations or mixins.
+    """)
     fun smartOverwrite(action: Function<*>) {
         verifyNotSet()
         methodTransformer = SmartMethodTransformer(MethodActionType.SMART_OVERWRITE, action)

@@ -14,13 +14,17 @@ object KhasmClassTransformerDispatcher {
         registerClassTransformer(KhasmClassTransformerBuilder(modid, transformer).build())
     }
 
-    fun tryTransform(node: ClassNode) {
+    fun tryTransform(node: ClassNode): Boolean {
+        var transformed = false
         transformers.forEach {
             if (it.tryTransformClass(node)) {
                 transformersToRemove.add(it)
+                transformed = true
             }
         }
         transformers.removeAll(transformersToRemove)
         transformersToRemove.clear()
+
+        return transformed
     }
 }

@@ -7,6 +7,8 @@ import net.khasm.util.all
 import net.khasm.util.logger
 import user11681.reflect.Classes
 
+// region conversions
+
 // These methods exist for the purpose of making bytecode easier.
 // These turn primitives into their object representations.
 fun toObject(obj: Int): Any = obj
@@ -28,6 +30,10 @@ fun toD(obj: Any?): Double = obj as Double
 fun toF(obj: Any?): Float = obj as Float
 fun toZ(obj: Any?): Boolean = obj as Boolean
 fun toC(obj: Any?): Char = obj as Char
+
+// endregion
+
+// region moar stuffs
 
 /**
  * Invoke a [function] with the given [args].
@@ -52,3 +58,5 @@ fun comment(comment: String) {
  * Force cast an [obj] to [class]
  */
 fun cast(obj: Any?, `class`: Class<*>): Any? = Classes.reinterpret(obj, `class`)
+
+// endregion

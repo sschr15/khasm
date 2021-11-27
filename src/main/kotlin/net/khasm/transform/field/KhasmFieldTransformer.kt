@@ -55,7 +55,7 @@ class KhasmFieldTransformer(private val node: FieldNode) {
     }
 
     init {
-        logger.info("Transforming field ${node.name} (type ${node.desc})")
+        logger.debug("Transforming field ${node.name} (type ${node.desc})")
     }
 }
 
