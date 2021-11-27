@@ -12,22 +12,14 @@ repositories {
 }
 
 dependencies {
-    modImplementation include('khasm:khasm:VERSION')
+    // including is currently not recommended as khasm includes kotlin-stdlib itself
+    modImplementation('khasm:khasm:VERSION')
 }
 ```
 
 Get the latest version (instead of `VERSION`) from the [properties file](gradle.properties)
 
-Initialize using the `KhasmLoad` interface and the `khasm:code-setup` entrypoint in your `fabric.mod.json`:
-```json5
-    // ...
-    "entrypoints": {
-        "khasm:code-setup": [
-            "package.with.setup.Class"
-        ]
-    }
-    // ...
-```
+Initialize by making a subclass of [KhasmInitializer](src/main/kotlin/net/khasm/KhasmLoad.kt)
 
 ## Example
 
