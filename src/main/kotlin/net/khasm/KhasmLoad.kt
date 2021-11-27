@@ -1,16 +1,5 @@
 package net.khasm
 
-@Deprecated(
-    "KhasmLoad is deprecated due to its difficulty with fabric loader. Use a subclass of KhasmInitializer instead",
-    ReplaceWith(
-        "KhasmLoadReplacement()",
-        "net.khasm.KhasmLoadReplacement"
-    ),
-)
-interface KhasmLoad {
-    fun loadTransformers()
-}
-
 /**
  * A base class for Khasm transformers.
  * This is used instead of Fabric's entrypoint system,
@@ -23,6 +12,17 @@ abstract class KhasmInitializer {
      * This is called by Khasm's initialization routine.
      */
     abstract fun init()
+}
+
+@Deprecated(
+    "KhasmLoad is deprecated due to its difficulty with fabric loader. Use a subclass of KhasmInitializer instead",
+    ReplaceWith(
+        "KhasmLoadReplacement()",
+        "net.khasm.KhasmLoadReplacement"
+    ),
+)
+interface KhasmLoad {
+    fun loadTransformers()
 }
 
 /**
