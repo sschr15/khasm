@@ -5,8 +5,8 @@ plugins {
     id "org.jetbrains.dokka" version "1.5.0"
 }
 
-sourceCompatibility = JavaVersion.VERSION_16
-targetCompatibility = JavaVersion.VERSION_16
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
 
 archivesBaseName = project.archives_base_name
 version = project.mod_version
@@ -117,7 +117,7 @@ publishing {
 
 compileKotlin {
     kotlinOptions {
-        jvmTarget = "16"
+        jvmTarget = "17"
         freeCompilerArgs = ["-Xopt-in=kotlin.RequiresOptIn"]
     }
 }

@@ -6,6 +6,7 @@ import net.khasm.annotation.DangerousKhasmUsage
 import net.khasm.transform.`class`.KhasmClassTransformerDispatcher
 import net.khasm.transform.method.target.HeadTarget
 import net.khasm.transform.method.target.MethodInvocationTarget
+import net.khasm.transform.method.target.OpcodeTarget
 import net.khasm.transform.method.target.ReturnTarget
 import net.khasm.util.*
 import net.minecraft.client.MinecraftClient
@@ -91,20 +92,23 @@ class AdvancedKhasmTest : KhasmInitializer() {
                     methodTarget("net.minecraft.class_4068", "method_25394", "(Lnet/minecraft/class_4587;IIF)V", true)
 
                     target {
-                        // boolean MinecraftClient.isModded()
-                        MethodInvocationTarget("net.minecraft.class_310", "method_24289", "()Z")
+                        OpcodeTarget(Opcodes.INVOKEDYNAMIC) inside (
+                            // MatrixStack.pop()
+                            MethodInvocationTarget("net.minecraft.class_4587", "method_22909", "()V") until
+                            // MinecraftClient.isDemo()
+                            MethodInvocationTarget("net.minecraft.class_310", "method_1530", "()Z")
+                        )
                     }
 
                     action { rawInject {
                         new(StringBuilder::class)
                         dup
                         invokespecial(StringBuilder::class, "<init>", "()V")
-                        aload(11)
+                        swap
                         invokevirtual(StringBuilder::class, "append", StringBuilder::class, String::class)
                         ldc(" (Khasm)")
                         invokevirtual(StringBuilder::class, "append", StringBuilder::class, String::class)
                         invokevirtual(StringBuilder::class, "toString", String::class)
-                        astore(11)
                     } }
                 }
             }
