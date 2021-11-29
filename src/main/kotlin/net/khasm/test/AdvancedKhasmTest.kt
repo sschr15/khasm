@@ -6,6 +6,7 @@ import net.khasm.annotation.DangerousKhasmUsage
 import net.khasm.transform.`class`.KhasmClassTransformerDispatcher
 import net.khasm.transform.method.action.rawInject
 import net.khasm.transform.method.action.smartInject
+import net.khasm.transform.method.action.smartOverwrite
 import net.khasm.transform.method.target.HeadTarget
 import net.khasm.transform.method.target.MethodInvocationTarget
 import net.khasm.transform.method.target.OpcodeTarget
@@ -20,6 +21,7 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.TableSwitchGenerator
 import java.io.PrintStream
 import java.lang.annotation.Documented
+import kotlin.reflect.jvm.javaMethod
 
 @Suppress("RemoveRedundantQualifierName", "MemberVisibilityCanBePrivate")
 class AdvancedKhasmTest : KhasmInitializer() {
@@ -125,6 +127,13 @@ class AdvancedKhasmTest : KhasmInitializer() {
 
                     addInject(ReturnTarget(), smartInject(action = ::overrideMinecraftClientLogger))
                 }
+
+                transformMethod {
+                    // shouldFilterText()
+                    methodTarget("net.minecraft.class_310", "method_33883", "()Z")
+
+                    addInject(HeadTarget(), smartOverwrite(::overwriteShouldFilterText.javaMethod!!))
+                }
             }
         }
     }
@@ -147,7 +156,12 @@ fun overrideMinecraftClientLogger() {
     mcLogger!!.info("The window title is ${mcGetWindowTitle()}")
 }
 
-fun thing(thiz: Any) {
-    val `this`: TitleScreen = thiz.reinterpret()
+fun thing(`this`: Any) {
+    val `this`: TitleScreen = `this`.reinterpret()
     println(`this`.title)
+}
+
+fun overwriteShouldFilterText(`this`: Any): Boolean {
+    logger.info("Overwriting shouldFilterText")
+    return false
 }

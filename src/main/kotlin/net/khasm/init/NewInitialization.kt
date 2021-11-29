@@ -154,28 +154,35 @@ fun khasmTransform(bytes: ByteArray?, s: String?): ByteArray? {
     if (bytes == null || s == null) return null
     val name = s.replace('.', '/')
     return if (!name.startsWith("net/khasm")) {
-        if (currentlyTransforming.contains(name)) {
-            throw AlreadyTransformingException(name)
-        } else {
-            currentlyTransforming.add(name)
-        }
-
-        val node = ClassNode()
-        ClassReader(bytes).accept(node, 0)
-        // check if the class gets transformed by seeing if any transformers run
-        var transformed = KhasmClassTransformerDispatcher.tryTransform(node)
-        transformed = KhasmMethodTransformerDispatcher.tryTransform(node) || transformed
-        currentlyTransforming.remove(name)
-
-        // if no changes were made, return the original bytes (hopefully circumnavigates ClassCircularityError)
-        if (!transformed) bytes
-        else KhasmClassWriter(AsmClassWriter.COMPUTE_FRAMES, currentClassLoader).also { node.accept(it) }.toByteArray().also {
-            if (debugFolder.exists()) {
-                // export if modified by khasm
-                val exportPath = debugFolder / "$name.class"
-                exportPath.parent.createDirectories()
-                exportPath.writeBytes(it)
+        runCatching {
+            if (currentlyTransforming.contains(name)) {
+                throw AlreadyTransformingException(name)
+            } else {
+                currentlyTransforming.add(name)
             }
+
+            val node = ClassNode()
+            ClassReader(bytes).accept(node, 0)
+            // check if the class gets transformed by seeing if any transformers run
+            var transformed = KhasmClassTransformerDispatcher.tryTransform(node)
+            transformed = KhasmMethodTransformerDispatcher.tryTransform(node) || transformed
+            currentlyTransforming.remove(name)
+
+            // if no changes were made, return the original bytes (hopefully circumnavigates ClassCircularityError)
+            if (!transformed) bytes
+            else KhasmClassWriter(AsmClassWriter.COMPUTE_FRAMES, currentClassLoader).also { node.accept(it) }
+                .toByteArray().also {
+                if (debugFolder.exists()) {
+                    // export if modified by khasm
+                    val exportPath = debugFolder / "$name.class"
+                    exportPath.parent.createDirectories()
+                    exportPath.writeBytes(it)
+                }
+            }
+        }.getOrElse {
+            logger.error("Error transforming class $name", it)
+            currentlyTransforming.remove(name)
+            bytes
         }
     } else bytes
 }

@@ -32,7 +32,8 @@ class SmarterOverrideTransformer(val method: Method) : MethodTransformer(MethodA
 
     fun getMethodNode(): MethodNode {
         val classNode = ClassNode()
-        ClassReader(parentClass.getResourceAsStream(parentClass.name.replace('.', '/') + ".class"))
+        println(parentClass.name)
+        ClassReader(parentClass.name)
             .accept(classNode, 0)
         return classNode.methods.first { it.name == method.name && it.desc == Type.getMethodDescriptor(method) }
     }

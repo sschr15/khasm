@@ -178,29 +178,24 @@ class KhasmMethodTransformer(val modid: String) {
                                         node.maxStack = newMethod.maxStack
                                         node.tryCatchBlocks = newMethod.tryCatchBlocks
                                         node.localVariables = newMethod.localVariables
-                                        node.visibleAnnotations = newMethod.visibleAnnotations
-                                        node.invisibleAnnotations = newMethod.invisibleAnnotations
-                                        node.visibleTypeAnnotations = newMethod.visibleTypeAnnotations
-                                        node.invisibleTypeAnnotations = newMethod.invisibleTypeAnnotations
-                                        node.visibleParameterAnnotations = newMethod.visibleParameterAnnotations
-                                        node.invisibleParameterAnnotations = newMethod.invisibleParameterAnnotations
                                         node.exceptions = newMethod.exceptions
 
                                         // access has to be handled specially
                                         val accessibility = max(node.accessLevel, newMethod.accessLevel).getBitmask()
                                         val newAccess = (newMethod.access or AccessLevel.getDefaultBitmask()) and accessibility
+                                        val access = node.modifiers
                                         node.access = if (static in access) {
                                             newAccess or static.access // force static
                                         } else {
                                             newAccess and static.access.inv() // force non-static
                                         }
+                                        if (final !in access) {
+                                            node.access = node.access and final.access.inv() // force non-final
+                                        }
 
-                                        AnnotationNode("net/khasm/transform/KhasmOverwrite").also {
+                                        node.visitAnnotation("net/khasm/transform/KhasmOverwrite", true).also {
                                             it.visit("modid", modid)
-                                            it.visit("declaringClass", methodTransformer.parentClass)
-
-                                            if (node.visibleAnnotations == null) node.visibleAnnotations = listOf()
-                                            node.visibleAnnotations!!.add(it)
+                                            it.visit("declaringClass", coerceType(methodTransformer.parentClass))
                                         }
                                     }
                                 }
