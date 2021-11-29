@@ -2,6 +2,7 @@ package net.khasm.test
 
 import net.khasm.KhasmInitializer
 import net.khasm.transform.method.KhasmMethodTransformerDispatcher
+import net.khasm.transform.method.action.smartInject
 import net.khasm.transform.method.target.HeadTarget
 
 class KhasmTest : KhasmInitializer() {
@@ -17,13 +18,9 @@ class KhasmTest : KhasmInitializer() {
             // Screen.init (Called on open or resize)
             methodTarget("net.minecraft.class_437", "method_25426", "()V")
 
-            target { HeadTarget() }
-
-            action {
-                smartInject {
-                    println("This line is printed by the example khasm transformer!")
-                }
-            }
+            addInject(HeadTarget(), smartInject {
+                println("This line is printed by the example khasm transformer!")
+            })
         }
     }
 

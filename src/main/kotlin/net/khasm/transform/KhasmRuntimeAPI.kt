@@ -6,6 +6,7 @@ package net.khasm.transform
 import net.khasm.util.all
 import net.khasm.util.logger
 import user11681.reflect.Classes
+import kotlin.reflect.KClass
 
 // region conversions
 
@@ -58,5 +59,15 @@ fun comment(comment: String) {
  * Force cast an [obj] to [class]
  */
 fun cast(obj: Any?, `class`: Class<*>): Any? = Classes.reinterpret(obj, `class`)
+
+/**
+ * An annotation used when a method has been overwritten.
+ */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class KhasmOverwrite(
+    val name: String,
+    val declaringClass: KClass<*>,
+)
 
 // endregion

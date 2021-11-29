@@ -59,3 +59,8 @@ fun Modifiers.containsNone(modifiers: Modifiers) =
     (this.access and modifiers.access) == 0
 fun Modifiers.containsOthers(modifiers: Modifiers) =
     (this.access and modifiers.access.inv()) != 0
+
+operator fun Modifiers.contains(modifier: Modifiers) =
+    (this.access and modifier.access) != 0
+operator fun Modifiers.contains(modifier: Int) =
+    (this.access and modifier) != 0

@@ -4,6 +4,8 @@ import codes.som.anthony.koffee.insns.jvm.*
 import net.khasm.KhasmInitializer
 import net.khasm.annotation.DangerousKhasmUsage
 import net.khasm.transform.`class`.KhasmClassTransformerDispatcher
+import net.khasm.transform.method.action.rawInject
+import net.khasm.transform.method.action.smartInject
 import net.khasm.transform.method.target.HeadTarget
 import net.khasm.transform.method.target.MethodInvocationTarget
 import net.khasm.transform.method.target.OpcodeTarget
@@ -64,26 +66,18 @@ class AdvancedKhasmTest : KhasmInitializer() {
                     // Screen.init (see KhasmTest)
                     methodTarget("net.minecraft.class_437", "method_25426", "()V")
 
-                    target { HeadTarget() }
-
-                    action {
-                        rawInject {
-                            aload_0 // this
-                            checkcast(TableSwitchGenerator::class)
-                            invokeinterface(TableSwitchGenerator::class, "generateDefault", void)
-                        }
-                    }
+                    addInject(HeadTarget(), rawInject {
+                        aload_0 // this
+                        checkcast(TableSwitchGenerator::class)
+                        invokeinterface(TableSwitchGenerator::class, "generateDefault", void)
+                    })
                 }
 
                 transformMethod {
                     // Screen.init (see KhasmTest)
                     methodTarget("net.minecraft.class_437", "method_25426", "()V")
 
-                    target { HeadTarget() }
-
-                    action {
-                        smartInject(mapClass("net.minecraft.class_442"), action = ::thing)
-                    }
+                    addInject(HeadTarget(), smartInject(mapClass("net.minecraft.class_442"), action = ::thing))
                 }
 
                 transformMethod {
@@ -91,25 +85,24 @@ class AdvancedKhasmTest : KhasmInitializer() {
                     @OptIn(DangerousKhasmUsage::class)
                     methodTarget("net.minecraft.class_4068", "method_25394", "(Lnet/minecraft/class_4587;IIF)V", true)
 
-                    target {
+                    addInject(
                         OpcodeTarget(Opcodes.INVOKEDYNAMIC) inside (
                             // MatrixStack.pop()
                             MethodInvocationTarget("net.minecraft.class_4587", "method_22909", "()V") until
                             // MinecraftClient.isDemo()
                             MethodInvocationTarget("net.minecraft.class_310", "method_1530", "()Z")
-                        )
-                    }
-
-                    action { rawInject {
-                        new(StringBuilder::class)
-                        dup
-                        invokespecial(StringBuilder::class, "<init>", "()V")
-                        swap
-                        invokevirtual(StringBuilder::class, "append", StringBuilder::class, String::class)
-                        ldc(" (Khasm)")
-                        invokevirtual(StringBuilder::class, "append", StringBuilder::class, String::class)
-                        invokevirtual(StringBuilder::class, "toString", String::class)
-                    } }
+                        ),
+                        rawInject {
+                            new(StringBuilder::class)
+                            dup
+                            invokespecial(StringBuilder::class, "<init>", "()V")
+                            swap
+                            invokevirtual(StringBuilder::class, "append", StringBuilder::class, String::class)
+                            ldc(" (Khasm)")
+                            invokevirtual(StringBuilder::class, "append", StringBuilder::class, String::class)
+                            invokevirtual(StringBuilder::class, "toString", String::class)
+                        }
+                    )
                 }
             }
         }
@@ -130,11 +123,7 @@ class AdvancedKhasmTest : KhasmInitializer() {
                     @OptIn(DangerousKhasmUsage::class)
                     methodTarget("net.minecraft.class_310", "<init>", "(Lnet/minecraft/class_542;)V", true)
 
-                    target { ReturnTarget() }
-
-                    action {
-                        smartInject(action = ::overrideMinecraftClientLogger)
-                    }
+                    addInject(ReturnTarget(), smartInject(action = ::overrideMinecraftClientLogger))
                 }
             }
         }
