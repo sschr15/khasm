@@ -7,7 +7,7 @@ import codes.som.anthony.koffee.insns.jvm.ldc
 import codes.som.anthony.koffee.types.TypeLike
 import codes.som.anthony.koffee.types.coerceType
 import net.khasm.annotation.DangerousKhasmUsage
-import net.khasm.transform.method.action.ActionBuilder
+import net.khasm.transform.method.action.*
 import net.khasm.transform.method.target.AbstractKhasmTarget
 import net.khasm.transform.method.target.AtTarget
 import net.khasm.util.mapClass
@@ -20,6 +20,12 @@ import user11681.reflect.Classes
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 class KhasmMethodTransformerBuilder(method: KhasmMethodTransformerBuilder.() -> Unit, modid: String) {
     private val working = KhasmMethodTransformer(modid)
+    private val legacyActionTarget = object {
+        var targetPredicate: AbstractKhasmTarget? = null
+        @Suppress("DEPRECATION")
+        var action: (ActionBuilder.() -> Unit)? = null
+        var built = false
+    }
 
     /**
      * Acts like [checkcast(TypeLike)][codes.som.anthony.koffee.insns.jvm.checkcast]
@@ -68,8 +74,22 @@ class KhasmMethodTransformerBuilder(method: KhasmMethodTransformerBuilder.() -> 
         working.setMethodPredicate(lambda)
     }
 
+    /**
+     * Add an injection to this transformer.
+     * [`code`][code] can be generated from [rawInject], [rawOverwrite], [smartInject], [smartOverwrite], or [oldSmartOverwrite]
+     */
+    fun addInject(action: AbstractKhasmTarget, code: MethodTransformer) {
+        working.actions.getOrPut(action) { mutableListOf() }.add(code)
+    }
+
+    @Deprecated("Use addInject with the target instead", ReplaceWith("addInject(target, code)"), DeprecationLevel.WARNING)
     fun target(lambda: () -> AbstractKhasmTarget) {
-        working.setTargetPredicate(lambda())
+        legacyActionTarget.targetPredicate = lambda()
+        if (legacyActionTarget.action != null && legacyActionTarget.targetPredicate != null && !legacyActionTarget.built) {
+            @Suppress("DEPRECATION")
+            addInject(legacyActionTarget.targetPredicate!!, ActionBuilder(legacyActionTarget.action!!).methodTransformer!!)
+            legacyActionTarget.built = true
+        }
     }
 
     @DangerousKhasmUsage("""
@@ -80,12 +100,31 @@ class KhasmMethodTransformerBuilder(method: KhasmMethodTransformerBuilder.() -> 
         If (when) Kotlin gets a chance to support default values, this
         annotation will be removed.
     """)
+    @Deprecated(
+        "Use addInject with the target instead",
+        ReplaceWith(
+            "addInject(AtTarget(at), code)",
+            "net.khasm.transform.method.target.AtTarget"
+        ),
+        DeprecationLevel.WARNING
+    )
     fun target(at: At) {
-        working.setTargetPredicate(AtTarget(at))
+        legacyActionTarget.targetPredicate = AtTarget(at)
+        if (legacyActionTarget.action != null && legacyActionTarget.targetPredicate != null && !legacyActionTarget.built) {
+            @Suppress("DEPRECATION")
+            addInject(legacyActionTarget.targetPredicate!!, ActionBuilder(legacyActionTarget.action!!).methodTransformer!!)
+            legacyActionTarget.built = true
+        }
     }
 
+    @Deprecated("Use addInject with the target instead", ReplaceWith("addInject(target, code)"), DeprecationLevel.WARNING)
+    @Suppress("DEPRECATION")
     fun action(action: ActionBuilder.() -> Unit) {
-        working.setAction(action)
+        legacyActionTarget.action = action
+        if (legacyActionTarget.action != null && legacyActionTarget.targetPredicate != null && !legacyActionTarget.built) {
+            addInject(legacyActionTarget.targetPredicate!!, ActionBuilder(legacyActionTarget.action!!).methodTransformer!!)
+            legacyActionTarget.built = true
+        }
     }
 
     fun build(): KhasmMethodTransformer {
